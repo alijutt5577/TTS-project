@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
+import { useBanners } from '../context/BannerContext';
 import { 
   Plus, Package, ShoppingBag, Trash2, ArrowLeft, Lock, LogOut, 
   DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare, Menu 
@@ -15,6 +16,8 @@ export default function AdminDashboard() {
   const addProduct = productContext.addProduct;
   const deleteProduct = productContext.deleteProduct;
   const editProduct = productContext.editProduct;
+
+  const { heroBanners: dbHero, mobileHeroBanners: dbMobileHero, poster1: dbP1, poster2: dbP2, poster3: dbP3, updateBanners } = useBanners();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -89,6 +92,14 @@ export default function AdminDashboard() {
   const [inquiries, setInquiries] = useState<any[]>([]);
 
   useEffect(() => {
+    if (dbHero && dbHero.length > 0) setHeroBanners(dbHero);
+    if (dbMobileHero && dbMobileHero.length > 0) setMobileHeroBanners(dbMobileHero);
+    if (dbP1) setPoster1(dbP1);
+    if (dbP2) setPoster2(dbP2);
+    if (dbP3) setPoster3(dbP3);
+  }, [dbHero, dbMobileHero, dbP1, dbP2, dbP3]);
+
+  useEffect(() => {
     const savedAnn = localStorage.getItem('tts_announcement');
     if (savedAnn) setAnnouncementText(savedAnn);
 
@@ -104,7 +115,6 @@ export default function AdminDashboard() {
     const savedStatus = localStorage.getItem('tts_store_status');
     if (savedStatus !== null) setStoreStatus(savedStatus === 'true');
 
-    // Load Contact Support Details
     const savedEmail = localStorage.getItem('tts_contact_email');
     if (savedEmail) setContactEmail(savedEmail);
     const savedLoc = localStorage.getItem('tts_contact_location');
@@ -112,7 +122,6 @@ export default function AdminDashboard() {
     const savedHrs = localStorage.getItem('tts_contact_hours');
     if (savedHrs) setContactHours(savedHrs);
 
-    // Load Logo & Banners
     const savedLogoTxt = localStorage.getItem('tts_logo_text');
     if (savedLogoTxt) setLogoText(savedLogoTxt);
     const savedLogoImg = localStorage.getItem('tts_logo_image');
@@ -121,26 +130,6 @@ export default function AdminDashboard() {
     if (savedLogoType) setLogoTextOrImg(savedLogoType as any);
     const savedLogoSize = localStorage.getItem('tts_logo_size');
     if (savedLogoSize) setLogoSize(savedLogoSize);
-
-    const savedHeroBanners = localStorage.getItem('tts_hero_banners');
-    if (savedHeroBanners) {
-      try { setHeroBanners(JSON.parse(savedHeroBanners)); } catch (e) { setHeroBanners(['/herobanners.jpg']); }
-    } else {
-      const singleHB = localStorage.getItem('tts_hero_banner');
-      if (singleHB) setHeroBanners([singleHB]);
-    }
-
-    const savedMobileBanners = localStorage.getItem('tts_mobile_hero_banners');
-    if (savedMobileBanners) {
-      try { setMobileHeroBanners(JSON.parse(savedMobileBanners)); } catch (e) { setMobileHeroBanners(['/herobanners.jpg']); }
-    }
-
-    const p1 = localStorage.getItem('tts_poster1');
-    if (p1) setPoster1(p1);
-    const p2 = localStorage.getItem('tts_poster2');
-    if (p2) setPoster2(p2);
-    const p3 = localStorage.getItem('tts_poster3');
-    if (p3) setPoster3(p3);
 
     const savedOrders = localStorage.getItem('tts_orders');
     if (savedOrders) {
@@ -151,17 +140,6 @@ export default function AdminDashboard() {
     if (savedInquiries) {
       try { setInquiries(JSON.parse(savedInquiries)); } catch (e) { console.error('Failed to parse inquiries', e); }
     }
-
-    const handleStorageChange = () => {
-      const updatedOrders = localStorage.getItem('tts_orders');
-      if (updatedOrders) setOrders(JSON.parse(updatedOrders));
-
-      const updatedInquiries = localStorage.getItem('tts_inquiries');
-      if (updatedInquiries) setInquiries(JSON.parse(updatedInquiries));
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // HIGH DEFINITION IMAGE COMPRESSION (1920px Full HD)
@@ -235,7 +213,7 @@ export default function AdminDashboard() {
     alert('Contact Support Details updated & LIVE on website!');
   };
 
-  const handleSaveBanners = () => {
+  const handleSaveBanners = async () => {
     try {
       localStorage.setItem('tts_logo_type', logoType);
       localStorage.setItem('tts_logo_text', logoText);
@@ -253,10 +231,19 @@ export default function AdminDashboard() {
       localStorage.setItem('tts_poster2', poster2);
       localStorage.setItem('tts_poster3', poster3);
 
+      // SAVE TO FIRESTORE DATABASE
+      await updateBanners({
+        heroBanners,
+        mobileHeroBanners,
+        poster1,
+        poster2,
+        poster3
+      });
+
       window.dispatchEvent(new Event('storage'));
-      alert('Logo & All Banners updated & LIVE on website slider!');
+      alert('Logo & All Banners updated & saved to Firestore Database LIVE!');
     } catch (error) {
-      alert('Storage Quota Exceeded! Please delete some old hero banners or reduce image file sizes.');
+      alert('Storage Quota Exceeded or Firebase Error! Please check file sizes.');
     }
   };
 
@@ -1012,7 +999,7 @@ export default function AdminDashboard() {
               onClick={handleSaveBanners}
               className="bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs uppercase tracking-widest font-semibold py-3.5 px-6 rounded transition shadow cursor-pointer mt-4"
             >
-              Save Logo & All Banners
+              Save Logo & All Banners to Database
             </button>
           </div>
         )}
@@ -1133,7 +1120,6 @@ export default function AdminDashboard() {
                       <div className="flex items-center space-x-2 mt-1">
                         <p className="text-xs font-bold text-stone-800">{product.price}</p>
                         
-                        {/* DYNAMIC UNITS VS SOLD OUT BADGE */}
                         {product.units === 0 || product.units === '0' ? (
                           <span className="text-[9px] bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
                             Sold Out
