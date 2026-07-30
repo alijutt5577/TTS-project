@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useProducts } from './context/ProductContext';
 import { useCart } from './context/CartContext';
 import { useWishlist } from './context/WishlistContext';
-import { Heart, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
@@ -17,13 +17,13 @@ export default function Home() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
-  // Dynamic Banners State (Supports Multiple Hero Banners)
-  const [heroBanners, setHeroBanners] = useState<string[]>(['/herobanners.jpg']);
+  const [heroBanners, setHeroBanners] = useState<string[]>([]);
+  const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
-  const [poster1, setPoster1] = useState('/poster1.jpg');
-  const [poster2, setPoster2] = useState('/poster2.jpg');
-  const [poster3, setPoster3] = useState('/poster3.jpg');
+  const [poster1, setPoster1] = useState('');
+  const [poster2, setPoster2] = useState('');
+  const [poster3, setPoster3] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
@@ -31,18 +31,26 @@ export default function Home() {
     const loadBanners = () => {
       const savedHeroBanners = localStorage.getItem('tts_hero_banners');
       if (savedHeroBanners) {
-        try { setHeroBanners(JSON.parse(savedHeroBanners)); } catch (e) { setHeroBanners(['/herobanners.jpg']); }
+        try { setHeroBanners(JSON.parse(savedHeroBanners)); } catch (e) { setHeroBanners([]); }
       } else {
         const single = localStorage.getItem('tts_hero_banner');
         if (single) setHeroBanners([single]);
+        else setHeroBanners([]);
+      }
+
+      const savedMobileBanners = localStorage.getItem('tts_mobile_hero_banners');
+      if (savedMobileBanners) {
+        try { setMobileHeroBanners(JSON.parse(savedMobileBanners)); } catch (e) { setMobileHeroBanners([]); }
+      } else {
+        setMobileHeroBanners([]);
       }
 
       const p1 = localStorage.getItem('tts_poster1');
-      if (p1) setPoster1(p1);
+      setPoster1(p1 || '');
       const p2 = localStorage.getItem('tts_poster2');
-      if (p2) setPoster2(p2);
+      setPoster2(p2 || '');
       const p3 = localStorage.getItem('tts_poster3');
-      if (p3) setPoster3(p3);
+      setPoster3(p3 || '');
     };
 
     loadBanners();
@@ -52,24 +60,28 @@ export default function Home() {
 
   // AUTO-SLIDE HERO BANNERS
   useEffect(() => {
-    if (heroBanners.length <= 1) return;
+    const activeBannersLength = window.innerWidth < 768 ? mobileHeroBanners.length : heroBanners.length;
+    if (activeBannersLength <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
-    }, 4000); // 4 Seconds per slide
+      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % activeBannersLength);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [heroBanners]);
+  }, [heroBanners, mobileHeroBanners]);
 
   const handlePrevBanner = () => {
-    setCurrentBannerIndex((prevIndex) => (prevIndex === 0 ? heroBanners.length - 1 : prevIndex - 1));
+    const activeLength = window.innerWidth < 768 ? mobileHeroBanners.length : heroBanners.length;
+    if (activeLength === 0) return;
+    setCurrentBannerIndex((prevIndex) => (prevIndex === 0 ? activeLength - 1 : prevIndex - 1));
   };
 
   const handleNextBanner = () => {
-    setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
+    const activeLength = window.innerWidth < 768 ? mobileHeroBanners.length : heroBanners.length;
+    if (activeLength === 0) return;
+    setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % activeLength);
   };
 
-  // Hydration Safety Return
   if (!isMounted) {
     return <div className="min-h-screen bg-[#FDFBF7]" />;
   }
@@ -79,121 +91,198 @@ export default function Home() {
     return cat.includes('best sellers');
   });
 
+  const hasHeroBanners = heroBanners.length > 0 || mobileHeroBanners.length > 0;
+
   return (
-    <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-0 font-sans">
+    <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-0 font-sans pb-20 md:pb-0">
       
       {/* 1. HERO SLIDER BANNER */}
-      <section className="relative w-full pt-[110px] bg-[#EFECE6] flex items-center justify-center overflow-hidden group">
-        <div className="relative w-full h-[calc(100vh-110px)] overflow-hidden">
+      {hasHeroBanners && (
+        <section className="relative w-full pt-[95px] md:pt-[110px] bg-[#EFECE6] flex items-center justify-center overflow-hidden group">
           
-          {/* SLIDER CAROUSEL TRACK */}
-          <div 
-            className="flex h-full w-full transition-transform duration-700 ease-out"
-            style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
-          >
-            {heroBanners.map((banner, index) => (
-              <div key={index} className="relative w-full h-full shrink-0">
-                <Image
-                  src={banner}
-                  alt={`Banner ${index + 1}`}
-                  fill
-                  priority={index === 0}
-                  sizes="100vw"
-                  className="object-cover object-top"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* PREV & NEXT BUTTONS (Visible if > 1 banner) */}
-          {heroBanners.length > 1 && (
-            <>
-              <button
-                onClick={handlePrevBanner}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
-                aria-label="Previous Banner"
+          {/* MOBILE BANNER SLIDER */}
+          {mobileHeroBanners.length > 0 && (
+            <div className="relative w-full aspect-[4/5] sm:aspect-[1/1] md:hidden overflow-hidden bg-stone-100 flex items-center justify-center">
+              <div 
+                className="flex h-full w-full transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
               >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={handleNextBanner}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
-                aria-label="Next Banner"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-
-              {/* DOT INDICATORS */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-2 z-20">
-                {heroBanners.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentBannerIndex(idx)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      currentBannerIndex === idx ? 'w-8 bg-amber-900' : 'w-2 bg-white/70 hover:bg-white'
-                    }`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
+                {mobileHeroBanners.map((banner, index) => (
+                  <div key={index} className="relative w-full h-full shrink-0">
+                    <Image
+                      src={banner}
+                      alt={`Mobile Banner ${index + 1}`}
+                      fill
+                      priority={index === 0}
+                      sizes="100vw"
+                      className="object-cover object-center w-full h-full"
+                    />
+                  </div>
                 ))}
               </div>
-            </>
+
+              {mobileHeroBanners.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePrevBanner}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
+                    aria-label="Previous Banner"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleNextBanner}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
+                    aria-label="Next Banner"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-2 z-20">
+                    {mobileHeroBanners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentBannerIndex(idx)}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${
+                          currentBannerIndex === idx ? 'w-8 bg-amber-900' : 'w-2 bg-white/70 hover:bg-white'
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
+          {/* DESKTOP BANNER SLIDER */}
+          {heroBanners.length > 0 && (
+            <div className="hidden md:relative md:flex w-full md:h-[calc(100vh-110px)] overflow-hidden bg-stone-100 items-center justify-center">
+              <div 
+                className="flex h-full w-full transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
+              >
+                {heroBanners.map((banner, index) => (
+                  <div key={index} className="relative w-full h-full shrink-0">
+                    <Image
+                      src={banner}
+                      alt={`Desktop Banner ${index + 1}`}
+                      fill
+                      priority={index === 0}
+                      sizes="100vw"
+                      className="object-cover object-center w-full h-full"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {heroBanners.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePrevBanner}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
+                    aria-label="Previous Banner"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={handleNextBanner}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition shadow-lg cursor-pointer z-20"
+                    aria-label="Next Banner"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-2 z-20">
+                    {heroBanners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentBannerIndex(idx)}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${
+                          currentBannerIndex === idx ? 'w-8 bg-amber-900' : 'w-2 bg-white/70 hover:bg-white'
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+        </section>
+      )}
+
+      {/* LUXURY DIVIDER */}
+      <div className="w-full py-8 flex items-center justify-center bg-[#FDFBF7]">
+        <div className="flex items-center space-x-4 text-amber-900/60">
+          <div className="h-[1px] w-16 sm:w-32 bg-amber-900/30"></div>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs">✦</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs">✦</span>
+          </div>
+          <div className="h-[1px] w-16 sm:w-32 bg-amber-900/30"></div>
         </div>
-      </section>
+      </div>
 
-      {/* 2. PROMO BANNERS */}
-      <section className="max-w-7xl mx-auto px-6 pt-16 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
-            <Image
-              src={poster1}
-              alt="Ladies Collection"
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover object-top group-hover:scale-105 transition duration-500"
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white">
-              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                EXPLORE LADIES →
-              </span>
-            </div>
-          </Link>
+      {/* 2. PROMO BANNERS / POSTERS */}
+      {(poster1 || poster2 || poster3) && (
+        <section className="max-w-7xl mx-auto px-6 pt-4 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {poster1 && (
+              <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+                <Image
+                  src={poster1}
+                  alt="Ladies Collection"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                    EXPLORE LADIES →
+                  </span>
+                </div>
+              </Link>
+            )}
 
-          <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
-            <Image
-              src={poster2}
-              alt="Kids Festive Collection"
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover object-top group-hover:scale-105 transition duration-500"
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white">
-              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                EXPLORE KIDS →
-              </span>
-            </div>
-          </Link>
+            {poster2 && (
+              <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+                <Image
+                  src={poster2}
+                  alt="Kids Festive Collection"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                    EXPLORE KIDS →
+                  </span>
+                </div>
+              </Link>
+            )}
 
-          <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
-            <Image
-              src={poster3}
-              alt="New Arrivals"
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover object-top group-hover:scale-105 transition duration-500"
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white">
-              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                EXPLORE NEW ARRIVALS →
-              </span>
-            </div>
-          </Link>
+            {poster3 && (
+              <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+                <Image
+                  src={poster3}
+                  alt="New Arrivals"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                    EXPLORE NEW ARRIVALS →
+                  </span>
+                </div>
+              </Link>
+            )}
 
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* 3. BEST SELLERS SECTION */}
       <section className="max-w-7xl mx-auto px-6 py-12 pb-20">
@@ -227,31 +316,32 @@ export default function Home() {
                         alt={product.name}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        className={`object-cover object-top group-hover:scale-105 transition duration-500 ease-in-out ${
+                        className={`object-cover object-center w-full h-full group-hover:scale-105 transition duration-500 ease-in-out ${
                           isSoldOut ? 'opacity-80' : ''
                         }`}
                       />
 
-                      {/* SOLD OUT BADGE */}
                       {isSoldOut && (
                         <span className="absolute top-3 left-3 bg-red-800 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-md z-10">
                           Sold Out
                         </span>
                       )}
 
+                      {/* Wishlist Button - White & Clean Theme Styled */}
                       <button
                         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           e.preventDefault();
                           e.stopPropagation();
                           toggleWishlist(product);
                         }}
-                        className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full text-stone-700 hover:text-red-600 transition z-10 shadow-sm cursor-pointer"
+                        className="absolute top-3 right-3 p-2.5 bg-white/90 hover:bg-white backdrop-blur-md rounded-full text-stone-800 transition z-10 shadow-md cursor-pointer"
                       >
-                        <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-600 text-red-600' : ''}`} />
+                        <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-600 text-red-600' : 'text-stone-800'}`} />
                       </button>
 
+                      {/* Add to Cart Button - White Theme Styled with Elegant Font Tracking */}
                       {!isSoldOut && (
-                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition duration-300">
+                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 z-10">
                           <button
                             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                               e.preventDefault();
@@ -262,9 +352,9 @@ export default function Home() {
                                 quantity: 1,
                               });
                             }}
-                            className="w-full bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-[10px] uppercase tracking-widest py-2.5 rounded shadow flex items-center justify-center space-x-2 transition cursor-pointer"
+                            className="w-full bg-white hover:bg-stone-100 text-stone-900 text-[11px] font-medium tracking-[0.15em] uppercase py-3 rounded-lg shadow-lg flex items-center justify-center space-x-2 transition cursor-pointer"
                           >
-                            <ShoppingBag className="w-3.5 h-3.5" />
+                            <ShoppingBag className="w-4 h-4 text-stone-900" />
                             <span>Add To Cart</span>
                           </button>
                         </div>

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
 import { 
   Plus, Package, ShoppingBag, Trash2, ArrowLeft, Lock, LogOut, 
-  DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare 
+  DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare, Menu 
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState('');
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'add' | 'orders' | 'inquiries' | 'banners' | 'announcement' | 'contact' | 'settings'>('orders');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [announcementText, setAnnouncementText] = useState('FREE SHIPPING NATIONWIDE ❖ 100% UNSTITCHED LUXURY FABRIC');
@@ -46,6 +47,7 @@ export default function AdminDashboard() {
   const [logoSize, setLogoSize] = useState('55');
   
   const [heroBanners, setHeroBanners] = useState<string[]>(['/herobanners.jpg']);
+  const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>(['/herobanners.jpg']);
   const [poster1, setPoster1] = useState('/poster1.jpg');
   const [poster2, setPoster2] = useState('/poster2.jpg');
   const [poster3, setPoster3] = useState('/poster3.jpg');
@@ -126,6 +128,11 @@ export default function AdminDashboard() {
     } else {
       const singleHB = localStorage.getItem('tts_hero_banner');
       if (singleHB) setHeroBanners([singleHB]);
+    }
+
+    const savedMobileBanners = localStorage.getItem('tts_mobile_hero_banners');
+    if (savedMobileBanners) {
+      try { setMobileHeroBanners(JSON.parse(savedMobileBanners)); } catch (e) { setMobileHeroBanners(['/herobanners.jpg']); }
     }
 
     const p1 = localStorage.getItem('tts_poster1');
@@ -240,6 +247,8 @@ export default function AdminDashboard() {
         localStorage.setItem('tts_hero_banner', heroBanners[0]);
       }
 
+      localStorage.setItem('tts_mobile_hero_banners', JSON.stringify(mobileHeroBanners));
+
       localStorage.setItem('tts_poster1', poster1);
       localStorage.setItem('tts_poster2', poster2);
       localStorage.setItem('tts_poster3', poster3);
@@ -263,12 +272,32 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleMultipleMobileHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const compressedBanners: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await compressImage(files[i], 1080, 0.92);
+        compressedBanners.push(compressed);
+      }
+      setMobileHeroBanners(prev => [...prev, ...compressedBanners]);
+    }
+  };
+
   const handleRemoveHeroBanner = (index: number) => {
     if (heroBanners.length <= 1) {
       alert('At least one Hero Banner is required!');
       return;
     }
     setHeroBanners(heroBanners.filter((_, idx) => idx !== index));
+  };
+
+  const handleRemoveMobileHeroBanner = (index: number) => {
+    if (mobileHeroBanners.length <= 1) {
+      alert('At least one Mobile Hero Banner is required!');
+      return;
+    }
+    setMobileHeroBanners(mobileHeroBanners.filter((_, idx) => idx !== index));
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, setFunction: (val: string) => void) => {
@@ -533,18 +562,52 @@ export default function AdminDashboard() {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#F8F6F0] text-stone-900 flex flex-col md:flex-row font-sans overflow-hidden">
-      <aside className="w-full md:w-64 bg-[#181818] text-white p-6 flex flex-col justify-between shrink-0 h-full">
+      
+      {/* MOBILE TOP HEADER BAR */}
+      <div className="md:hidden bg-[#181818] text-white px-4 py-3 flex items-center justify-between shrink-0 border-b border-stone-800 z-30">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="text-white p-1 hover:text-amber-500 transition cursor-pointer"
+            aria-label="Toggle Menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <span className="font-serif text-lg tracking-widest italic text-amber-500">TTS Control</span>
+        </div>
+        <Link href="/" className="text-stone-400 hover:text-white transition text-xs flex items-center space-x-1">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Shop</span>
+        </Link>
+      </div>
+
+      {/* SIDEBAR OVERLAY FOR MOBILE */}
+      {isMobileSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed md:relative top-0 left-0 w-72 md:w-64 bg-[#181818] text-white p-6 flex flex-col justify-between shrink-0 h-full z-50 transition-transform duration-300 ease-in-out ${
+        isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
         <div>
           <div className="flex items-center justify-between mb-8">
             <h1 className="font-serif text-2xl tracking-widest italic text-amber-500">TTS Control</h1>
-            <Link href="/" className="text-stone-400 hover:text-white transition p-1" title="Back to Shop">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button onClick={() => setIsMobileSidebarOpen(false)} className="md:hidden text-stone-400 hover:text-white p-1">
+                <X className="w-6 h-6" />
+              </button>
+              <Link href="/" className="hidden md:block text-stone-400 hover:text-white transition p-1" title="Back to Shop">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
 
-          <nav className="space-y-1.5">
+          <nav className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1">
             <button
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setActiveTab('dashboard'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'dashboard' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -554,7 +617,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('products')}
+              onClick={() => { setActiveTab('products'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'products' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -564,7 +627,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('add')}
+              onClick={() => { setActiveTab('add'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'add' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -574,7 +637,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('orders')}
+              onClick={() => { setActiveTab('orders'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'orders' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -584,7 +647,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('inquiries')}
+              onClick={() => { setActiveTab('inquiries'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'inquiries' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -594,7 +657,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('banners')}
+              onClick={() => { setActiveTab('banners'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'banners' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -604,7 +667,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('announcement')}
+              onClick={() => { setActiveTab('announcement'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'announcement' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -614,7 +677,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('contact')}
+              onClick={() => { setActiveTab('contact'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'contact' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -624,7 +687,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => { setActiveTab('settings'); setIsMobileSidebarOpen(false); }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'settings' ? 'bg-amber-900 text-white' : 'text-stone-400 hover:bg-stone-800 hover:text-white'
               }`}
@@ -835,28 +898,27 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* MULTI HERO SLIDER BANNERS */}
+            {/* MULTI HERO SLIDER BANNERS (DESKTOP) */}
             <div className="space-y-3 border-b border-stone-200 pb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-xs uppercase font-bold text-stone-800">
-                    Main Hero Slider Banners ({heroBanners.length})
+                    💻 Desktop Hero Slider Banners ({heroBanners.length})
                   </label>
-                  <p className="text-[10px] text-stone-500">Upload multiple photos to create a sliding hero banner on website</p>
+                  <p className="text-[10px] text-stone-500">Upload widescreen banners for desktop screens</p>
                 </div>
               </div>
 
               <label className="border-2 border-dashed border-stone-300 hover:border-stone-800 rounded-lg p-4 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 transition block">
                 <Upload className="w-5 h-5 text-stone-500 mx-auto mb-1" />
-                <span className="text-xs font-semibold text-stone-700">Click to Select & Add Multiple Hero Banners</span>
+                <span className="text-xs font-semibold text-stone-700">Click to Select & Add Desktop Hero Banners</span>
                 <input type="file" accept="image/*" multiple onChange={handleMultipleHeroUpload} className="hidden" />
               </label>
 
-              {/* BANNERS PREVIEW & REMOVE GRID */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
                 {heroBanners.map((banner, index) => (
                   <div key={index} className="relative group rounded-lg overflow-hidden border border-stone-300 bg-stone-100 h-24">
-                    <Image src={banner} alt={`Hero Banner ${index + 1}`} fill className="object-cover" />
+                    <Image src={banner} alt={`Desktop Banner ${index + 1}`} fill className="object-cover" />
                     <span className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                       #{index + 1}
                     </span>
@@ -865,6 +927,43 @@ export default function AdminDashboard() {
                       onClick={() => handleRemoveHeroBanner(index)}
                       className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition cursor-pointer"
                       title="Remove Banner"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MULTI MOBILE HERO SLIDER BANNERS */}
+            <div className="space-y-3 border-b border-stone-200 pb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs uppercase font-bold text-amber-900">
+                    📱 Mobile Responsive Hero Banners ({mobileHeroBanners.length})
+                  </label>
+                  <p className="text-[10px] text-stone-500">Upload separate portrait banners optimized for mobile screens (e.g. 1080x1350)</p>
+                </div>
+              </div>
+
+              <label className="border-2 border-dashed border-stone-300 hover:border-stone-800 rounded-lg p-4 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 transition block">
+                <Upload className="w-5 h-5 text-stone-500 mx-auto mb-1" />
+                <span className="text-xs font-semibold text-stone-700">Click to Select & Add Mobile Hero Banners</span>
+                <input type="file" accept="image/*" multiple onChange={handleMultipleMobileHeroUpload} className="hidden" />
+              </label>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
+                {mobileHeroBanners.map((banner, index) => (
+                  <div key={index} className="relative group rounded-lg overflow-hidden border border-stone-300 bg-stone-100 h-28">
+                    <Image src={banner} alt={`Mobile Banner ${index + 1}`} fill className="object-cover" />
+                    <span className="absolute top-1 left-1 bg-amber-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      Mobile #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMobileHeroBanner(index)}
+                      className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition cursor-pointer"
+                      title="Remove Mobile Banner"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

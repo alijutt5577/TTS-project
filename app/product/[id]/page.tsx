@@ -18,17 +18,17 @@ export default function ProductDetailPage() {
   
   const productId = params?.id as string;
   // Get product dynamically from global products context
-  const product: any = products.find((p) => p.id === productId) || products[0];
+  const product: any = products.find((p: any) => p.id === productId) || products[0];
 
   const [quantity, setQuantity] = useState(1);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
-  // Multiple Gallery Images Handling
+  // Multiple Gallery Images Handling without any wrong poster fallbacks
   const productImages: string[] = product?.images && Array.isArray(product.images) && product.images.length > 0 
     ? product.images 
-    : [product?.image || '/poster1.jpg'];
+    : [product?.image].filter(Boolean);
     
-  const [selectedImage, setSelectedImage] = useState<string>(productImages[0] || product?.image);
+  const [selectedImage, setSelectedImage] = useState<string>(productImages[0] || product?.image || '');
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
 
@@ -53,6 +53,7 @@ export default function ProductDetailPage() {
     if (isSoldOut) return;
     addToCart({
       ...product,
+      image: selectedImage || product.image,
       quantity: quantity,
     });
   };
@@ -76,13 +77,19 @@ export default function ProductDetailPage() {
           {/* Left Column: Product Image & Gallery Thumbnails */}
           <div className="space-y-4">
             <div className="relative h-[480px] md:h-[620px] w-full rounded-xl overflow-hidden shadow-md bg-stone-200">
-              <Image
-                src={selectedImage || product.image}
-                alt={product.name}
-                fill
-                priority
-                className="object-cover object-top"
-              />
+              {selectedImage ? (
+                <Image
+                  src={selectedImage}
+                  alt={product.name}
+                  fill
+                  priority
+                  className="object-cover object-top"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs uppercase tracking-widest">
+                  No Image Available
+                </div>
+              )}
               {/* SOLD OUT BADGE OVERLAY */}
               {isSoldOut && (
                 <div className="absolute top-4 left-4 bg-red-700 text-white text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded shadow">
@@ -194,7 +201,7 @@ export default function ProductDetailPage() {
                 </button>
 
                 <button
-                  onClick={() => toggleWishlist(product)}
+                  onClick={() => toggleWishlist({ ...product, image: selectedImage || product.image })}
                   aria-label="Wishlist"
                   className={`p-3.5 border rounded-sm transition bg-white ${
                     isWishlisted 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, Heart, ShoppingBag, X, Trash2, MessageCircle, Search } from 'lucide-react';
+import { User, Heart, ShoppingBag, X, Trash2, MessageCircle, Search, Menu, Home, Grid, UserCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductContext';
@@ -15,6 +15,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [announcementText, setAnnouncementText] = useState('FREE SHIPPING NATIONWIDE ❖ SHOP NEW ARRIVALS');
@@ -111,7 +112,7 @@ export default function Navbar() {
         className={`fixed top-0 left-0 w-full z-40 transition-all duration-300 ${
           isScrolled 
             ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-stone-200/50' 
-            : 'bg-transparent'
+            : 'bg-white'
         }`}
       >
         <div className="bg-[#121212] text-white text-[11px] font-bold tracking-[0.2em] uppercase py-2.5 overflow-hidden relative select-none border-b border-stone-800">
@@ -129,20 +130,39 @@ export default function Navbar() {
           </div>
         </div>
 
-        <nav className="w-full font-sans py-3">
+        <nav className="w-full font-sans py-3 relative">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
             
-            {/* DYNAMIC BRAND LOGO WITH ADJUSTABLE SIZE */}
-            <Link href="/" className="flex items-center shrink-0">
+            {/* LEFT: HAMBURGER (ONLY MOBILE) & DESKTOP LINKS (ONLY LAPTOP) */}
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open Menu" 
+                className="md:hidden hover:opacity-75 transition p-1 cursor-pointer"
+              >
+                <Menu className="w-6 h-6 stroke-[1.5]" />
+              </button>
+
+              <div className="hidden md:flex items-center space-x-6 text-xs tracking-widest font-medium uppercase text-stone-900">
+                <Link href="/" className="hover:opacity-75 transition">Home</Link>
+                <Link href="/ladies" className="hover:opacity-75 transition">Ladies</Link>
+                <Link href="/kids" className="hover:opacity-75 transition">Kids</Link>
+                <Link href="/new-arrivals" className="hover:opacity-75 transition">New Arrivals</Link>
+                <Link href="/contact" className="hover:opacity-75 transition">Contact Us</Link>
+              </div>
+            </div>
+
+            {/* CENTER: DYNAMIC BRAND LOGO */}
+            <Link href="/" className="absolute left-1/2 transform -translate-x-1/2 flex items-center shrink-0">
               {logoType === 'image' && logoImage ? (
                 <div 
-                  className="relative transition-all duration-300 flex items-center" 
+                  className="relative transition-all duration-300 flex items-center justify-center" 
                   style={{ 
                     height: `${currentHeight}px`, 
                     width: `${currentHeight * 3.5}px` 
                   }}
                 >
-                  <Image src={logoImage} alt="Brand Logo" fill className="object-contain object-left" priority />
+                  <Image src={logoImage} alt="Brand Logo" fill className="object-contain" priority />
                 </div>
               ) : (
                 <span className="font-serif text-2xl md:text-3xl font-normal tracking-[0.2em] text-stone-900 hover:text-amber-900 transition-all duration-300 italic uppercase">
@@ -151,27 +171,17 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* FULL NAVIGATION LINKS */}
-            <div className="hidden md:flex items-center space-x-8 text-xs tracking-widest font-medium uppercase text-stone-900">
-              <Link href="/" className="hover:opacity-75 transition">Home</Link>
-              <Link href="/ladies" className="hover:opacity-75 transition">Ladies</Link>
-              <Link href="/kids" className="hover:opacity-75 transition">Kids</Link>
-              <Link href="/new-arrivals" className="hover:opacity-75 transition">New Arrivals</Link>
-              <Link href="#" className="hover:opacity-75 transition">Collections</Link>
-              <Link href="#" className="hover:opacity-75 transition">About Us</Link>
-              <Link href="/contact" className="hover:opacity-75 transition">Contact Us</Link>
-            </div>
-
-            <div className="flex items-center space-x-5 text-stone-900">
+            {/* RIGHT ACTION ICONS */}
+            <div className="flex items-center space-x-4 text-stone-900">
               <button 
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Search" 
-                className="hover:opacity-75 transition p-1 cursor-pointer"
+                className="hidden md:block hover:opacity-75 transition p-1 cursor-pointer"
               >
                 <Search className="w-5 h-5 stroke-[1.5]" />
               </button>
 
-              <Link href="/admin" aria-label="Admin Dashboard" className="hover:opacity-75 transition p-1" title="Go to Admin Panel">
+              <Link href="/admin" aria-label="Admin Dashboard" className="hover:opacity-75 transition p-1 hidden sm:block" title="Go to Admin Panel">
                 <User className="w-5 h-5 stroke-[1.5]" />
               </Link>
 
@@ -205,6 +215,106 @@ export default function Navbar() {
         </nav>
       </header>
 
+      {/* MOBILE MENU SIDEBAR DRAWER */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      <aside
+        className={`fixed top-0 left-0 w-full max-w-xs h-full bg-[#FDFBF7] text-stone-900 z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        } flex flex-col justify-between p-6 border-r border-stone-200`}
+      >
+        <div>
+          <div className="flex items-center justify-between border-b border-stone-200 pb-4 mb-6">
+            <h2 className="font-serif text-lg tracking-[0.25em] font-medium uppercase text-amber-900">
+              TTS Menu
+            </h2>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-stone-500 hover:text-stone-900 transition p-1 cursor-pointer"
+            >
+              <X className="w-6 h-6 stroke-[1.5]" />
+            </button>
+          </div>
+
+          <div className="space-y-1 font-serif tracking-widest text-sm">
+            <Link 
+              href="/" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-3 border-b border-stone-100 hover:text-amber-900 hover:pl-2 transition-all duration-300 text-stone-800"
+            >
+              Home
+            </Link>
+            <Link 
+              href="/ladies" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-3 border-b border-stone-100 hover:text-amber-900 hover:pl-2 transition-all duration-300 text-stone-800"
+            >
+              Ladies Collection
+            </Link>
+            <Link 
+              href="/kids" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-3 border-b border-stone-100 hover:text-amber-900 hover:pl-2 transition-all duration-300 text-stone-800"
+            >
+              Kids Festive
+            </Link>
+            <Link 
+              href="/new-arrivals" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-3 border-b border-stone-100 hover:text-amber-900 hover:pl-2 transition-all duration-300 text-stone-800"
+            >
+              New Arrivals
+            </Link>
+            <Link 
+              href="/contact" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block py-3 border-b border-stone-100 hover:text-amber-900 hover:pl-2 transition-all duration-300 text-stone-800"
+            >
+              Contact Us
+            </Link>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-stone-200 text-center">
+          <Link 
+            href="/admin" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="text-[10px] font-sans uppercase tracking-[0.2em] text-stone-500 hover:text-stone-900 transition font-semibold"
+          >
+            Admin Panel Login
+          </Link>
+        </div>
+      </aside>
+
+      {/* MOBILE FIXED BOTTOM NAVIGATION BAR */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-stone-200 shadow-2xl z-40 flex items-center justify-around py-2.5 px-2">
+        <Link href="/" className="flex flex-col items-center text-stone-700 hover:text-amber-900 transition">
+          <Home className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Home</span>
+        </Link>
+        <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center text-stone-700 hover:text-amber-900 transition cursor-pointer">
+          <Menu className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Menu</span>
+        </button>
+        <Link href="/new-arrivals" className="flex flex-col items-center text-stone-700 hover:text-amber-900 transition">
+          <Grid className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Shop</span>
+        </Link>
+        <Link href="/admin" className="flex flex-col items-center text-stone-700 hover:text-amber-900 transition">
+          <UserCheck className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Account</span>
+        </Link>
+        <button onClick={() => setIsSearchOpen(true)} className="flex flex-col items-center text-stone-700 hover:text-amber-900 transition cursor-pointer">
+          <Search className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Search</span>
+        </button>
+      </div>
+
       {/* DYNAMIC FLOATING WHATSAPP BUTTON */}
       {formattedPhone !== '' && (
         <a
@@ -212,7 +322,7 @@ export default function Navbar() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Chat on WhatsApp"
-          className="fixed bottom-6 right-6 z-40 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-2xl transition-all duration-300 flex items-center justify-center"
+          className="fixed bottom-20 md:bottom-6 right-6 z-40 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-2xl transition-all duration-300 flex items-center justify-center"
         >
           <MessageCircle className="w-6 h-6 fill-current" />
         </a>
@@ -288,7 +398,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* WISHLIST DRAWER */}
+      {/* WISHLIST DRAWER (WHITE LUXURY THEME) */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
           isWishlistOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -297,18 +407,18 @@ export default function Navbar() {
       />
 
       <aside
-        className={`fixed top-0 right-0 w-full max-w-md h-full bg-[#181818] text-white z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${
+        className={`fixed top-0 right-0 w-full max-w-md h-full bg-[#FDFBF7] text-stone-900 z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${
           isWishlistOpen ? 'translate-x-0' : 'translate-x-full'
         } flex flex-col justify-between p-6`}
       >
-        <div className="flex items-center justify-between border-b border-stone-800 pb-4">
-          <h2 className="font-serif text-lg tracking-[0.2em] font-medium uppercase">
+        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+          <h2 className="font-serif text-lg tracking-[0.2em] font-medium uppercase text-stone-900">
             YOUR WISHLIST ({totalWishlistItems})
           </h2>
           <button
             onClick={() => setIsWishlistOpen(false)}
             aria-label="Close Wishlist"
-            className="text-stone-400 hover:text-white transition p-1 cursor-pointer"
+            className="text-stone-400 hover:text-stone-900 transition p-1 cursor-pointer"
           >
             <X className="w-6 h-6 stroke-[1.5]" />
           </button>
@@ -323,7 +433,7 @@ export default function Navbar() {
             </div>
           ) : (
             wishlist.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b border-stone-800/80 pb-3">
+              <div key={item.id} className="flex items-center justify-between border-b border-stone-200 pb-3">
                 <div 
                   onClick={() => {
                     setIsWishlistOpen(false);
@@ -331,15 +441,15 @@ export default function Navbar() {
                   }}
                   className="flex items-center space-x-3 cursor-pointer group"
                 >
-                  <div className="relative w-14 h-16 rounded overflow-hidden bg-stone-800">
-                    <Image src={item.image} alt={item.name} fill className="object-cover object-top group-hover:scale-105 transition" />
+                  <div className="relative w-14 h-16 rounded overflow-hidden bg-stone-200">
+                    <Image src={item.image || '/poster1.jpg'} alt={item.name} fill className="object-cover object-top group-hover:scale-105 transition" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-serif tracking-wide group-hover:text-amber-400 transition">{item.name}</h4>
-                    <p className="text-[10px] text-amber-500">{item.price}</p>
+                    <h4 className="text-xs font-serif tracking-wide text-stone-900 group-hover:text-amber-800 transition">{item.name}</h4>
+                    <p className="text-[10px] text-amber-900 font-semibold mt-0.5">{item.price}</p>
                   </div>
                 </div>
-                <button onClick={() => removeFromWishlist(item.id)} className="text-stone-500 hover:text-red-400 transition p-1 cursor-pointer">
+                <button onClick={() => removeFromWishlist(item.id)} className="text-stone-400 hover:text-red-600 transition p-1 cursor-pointer">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -347,17 +457,17 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="border-t border-stone-800 pt-4">
+        <div className="border-t border-stone-200 pt-4">
           <button
             onClick={() => setIsWishlistOpen(false)}
-            className="w-full bg-stone-100 hover:bg-white text-stone-900 text-xs font-semibold tracking-widest uppercase py-3.5 transition duration-300 rounded-sm cursor-pointer"
+            className="w-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold tracking-widest uppercase py-3.5 transition duration-300 rounded-sm cursor-pointer shadow-md"
           >
             Continue Browsing
           </button>
         </div>
       </aside>
 
-      {/* CART DRAWER */}
+      {/* CART DRAWER (WHITE LUXURY THEME) */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
           isCartOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -366,18 +476,18 @@ export default function Navbar() {
       />
 
       <aside
-        className={`fixed top-0 right-0 w-full max-w-md h-full bg-[#181818] text-white z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${
+        className={`fixed top-0 right-0 w-full max-w-md h-full bg-[#FDFBF7] text-stone-900 z-50 shadow-2xl transition-transform duration-300 ease-in-out transform ${
           isCartOpen ? 'translate-x-0' : 'translate-x-full'
         } flex flex-col justify-between p-6`}
       >
-        <div className="flex items-center justify-between border-b border-stone-800 pb-4">
-          <h2 className="font-serif text-lg tracking-[0.2em] font-medium uppercase">
+        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+          <h2 className="font-serif text-lg tracking-[0.2em] font-medium uppercase text-stone-900">
             YOUR CART ({totalCartItems})
           </h2>
           <button
             onClick={() => setIsCartOpen(false)}
             aria-label="Close Cart"
-            className="text-stone-400 hover:text-white transition p-1 cursor-pointer"
+            className="text-stone-400 hover:text-stone-900 transition p-1 cursor-pointer"
           >
             <X className="w-6 h-6 stroke-[1.5]" />
           </button>
@@ -392,23 +502,23 @@ export default function Navbar() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b border-stone-800/80 pb-3">
+              <div key={item.id} className="flex items-center justify-between border-b border-stone-200 pb-3">
                 <div 
                   onClick={() => handleCartItemClick(item.id)}
                   className="flex items-center space-x-3 cursor-pointer group flex-1"
                 >
-                  <div className="relative w-14 h-16 rounded overflow-hidden bg-stone-800 shrink-0">
-                    <Image src={item.image} alt={item.name} fill className="object-cover object-top group-hover:scale-105 transition" />
+                  <div className="relative w-14 h-16 rounded overflow-hidden bg-stone-200 shrink-0">
+                    <Image src={item.image || '/poster1.jpg'} alt={item.name} fill className="object-cover object-top group-hover:scale-105 transition" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-serif tracking-wide group-hover:text-amber-400 transition line-clamp-1">{item.name}</h4>
-                    <p className="text-[10px] text-stone-400 mt-0.5">{item.price} <span className="text-amber-500 font-semibold">x{item.quantity}</span></p>
+                    <h4 className="text-xs font-serif tracking-wide text-stone-900 group-hover:text-amber-800 transition line-clamp-1">{item.name}</h4>
+                    <p className="text-[10px] text-stone-500 mt-0.5">{item.price} <span className="text-amber-900 font-semibold ml-1">x{item.quantity}</span></p>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => removeFromCart(item.id)} 
-                  className="text-stone-500 hover:text-red-400 transition p-1 ml-2 cursor-pointer"
+                  className="text-stone-400 hover:text-red-600 transition p-1 ml-2 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -417,7 +527,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="border-t border-stone-800 pt-4 space-y-2">
+        <div className="border-t border-stone-200 pt-4 space-y-2">
           {cart.length > 0 && (
             <button
               onClick={() => {
@@ -431,7 +541,7 @@ export default function Navbar() {
           )}
           <button
             onClick={() => setIsCartOpen(false)}
-            className="w-full bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium tracking-widest uppercase py-3 transition duration-300 rounded-sm cursor-pointer"
+            className="w-full bg-stone-200 hover:bg-stone-300 text-stone-900 text-xs font-semibold tracking-widest uppercase py-3.5 transition duration-300 rounded-sm cursor-pointer shadow-sm"
           >
             Continue Shopping
           </button>

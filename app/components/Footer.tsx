@@ -18,7 +18,7 @@ export default function Footer() {
         
         {/* Brand Info */}
         <div className="space-y-4">
-          <h3 className="font-serif text-2xl font-bold tracking-[0.2em] text-white italic">
+          <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-wider text-white italic">
             TODAYTRENDSHOP
           </h3>
           <p className="text-xs text-stone-400 leading-relaxed">
@@ -68,7 +68,7 @@ export default function Footer() {
             />
             <button
               type="submit"
-              className="bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs px-4 py-2 uppercase tracking-wider rounded-r-sm transition"
+              className="bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs px-4 py-2 uppercase tracking-wider rounded-r-sm transition cursor-pointer"
             >
               Join
             </button>

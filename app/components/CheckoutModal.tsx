@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Send } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductContext';
+import emailjs from '@emailjs/browser';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -96,19 +97,47 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
       address: formData.address,
       total: totalAmountText,
       items: orderItemsText,
-      itemDetails: itemsToOrder, // Accurate product specific images included here
+      itemDetails: itemsToOrder,
       date: new Date().toISOString().split('T')[0],
-      status: 'New', // UPDATED FROM 'Pending' TO 'New'
+      status: 'New',
     };
 
-    const existingOrders = JSON.parse(localStorage.getItem('tts_orders') || '[]');
-    const updatedOrders = [newOrder, ...existingOrders];
-    localStorage.setItem('tts_orders', JSON.stringify(updatedOrders));
+    try {
+      const existingOrders = JSON.parse(localStorage.getItem('tts_orders') || '[]');
+      const updatedOrders = [newOrder, ...existingOrders];
+      localStorage.setItem('tts_orders', JSON.stringify(updatedOrders));
+      window.dispatchEvent(new Event('storage'));
+    } catch (storageErr) {
+      console.error('Storage limit error safely handled');
+    }
 
-    // Trigger storage event for instant admin panel & stock update
-    window.dispatchEvent(new Event('storage'));
+    // 3. SEND EMAIL NOTIFICATION VIA EMAILJS (Updated with correct template ID 'template_alo2sbs')
+    try {
+      const templateParams = {
+        order_id: newOrder.id,
+        customer_name: formData.fullName,
+        customer_phone: formData.phone,
+        customer_city: formData.city,
+        customer_address: formData.address,
+        total_amount: totalAmountText,
+        order_items: orderItemsText,
+      };
 
-    // 3. WHATSAPP MESSAGE REDIRECT
+      emailjs.send(
+        'service_uyvkdps',
+        'template_alo2sbs',
+        templateParams,
+        '3yWFiHp6MIEaS24Qj'
+      ).then((response) => {
+        console.log('Order notification email sent successfully!', response.status, response.text);
+      }).catch((err) => {
+        console.warn('EmailJS request failed silently without breaking user flow:', err);
+      });
+    } catch (emailErr) {
+      console.warn('Email execution caught safely');
+    }
+
+    // 4. WHATSAPP MESSAGE REDIRECT
     const savedPhone = typeof window !== 'undefined' ? localStorage.getItem('tts_support_phone') : null;
     let rawPhone = savedPhone ? savedPhone.trim().replace(/[^0-9]/g, '') : '';
 
@@ -120,7 +149,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
       .map((item) => {
         let line = `• *${item.name}* (x${item.quantity}) - ${item.price}`;
         if (item.image && item.image.startsWith('http')) {
-          line += `\n  🖼️ Photo: ${item.image}`;
+          line += `\n   🖼️ Photo: ${item.image}`;
         }
         return line;
       })
