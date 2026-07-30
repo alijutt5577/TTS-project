@@ -1,81 +1,84 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../lib/firebase';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot 
+} from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
-
-// DEMO / HARDCODED PRODUCTS ARE COMPLETELY REMOVED
-const defaultProducts: any[] = [];
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
 
+  // Real-time synchronization from Firebase Firestore
   useEffect(() => {
-    const saved = localStorage.getItem('tts_catalog_products');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setProducts(Array.isArray(parsed) ? parsed : []);
-      } catch (e) {
-        setProducts([]);
-      }
-    } else {
-      setProducts([]);
-      localStorage.setItem('tts_catalog_products', JSON.stringify([]));
-    }
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const items = snapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
+      }));
+      setProducts(items);
+    }, (error) => {
+      console.error("Error fetching products from Firestore: ", error);
+    });
 
-    const handleStorage = () => {
-      const updated = localStorage.getItem('tts_catalog_products');
-      if (updated) {
-        try {
-          const parsed = JSON.parse(updated);
-          if (Array.isArray(parsed)) setProducts(parsed);
-        } catch (e) {}
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    return () => unsubscribe();
   }, []);
 
-  const saveAndSetProducts = (newProducts: any[]) => {
-    setProducts(newProducts);
+  const addProduct = async (product: any) => {
     try {
-      localStorage.setItem('tts_catalog_products', JSON.stringify(newProducts));
-      window.dispatchEvent(new Event('storage'));
+      await addDoc(collection(db, 'products'), {
+        ...product,
+        createdAt: new Date().toISOString(),
+      });
     } catch (error) {
-      alert('Storage Full! Please use smaller images or remove older products.');
+      console.error("Error adding product: ", error);
+      alert('Failed to add product to database.');
     }
   };
 
-  const addProduct = (product: any) => {
-    const newProduct = { ...product, id: Date.now().toString() };
-    const updated = [newProduct, ...products];
-    saveAndSetProducts(updated);
+  const editProduct = async (updatedProduct: any) => {
+    try {
+      const { id, ...dataToUpdate } = updatedProduct;
+      const productRef = doc(db, 'products', id);
+      await updateDoc(productRef, dataToUpdate);
+    } catch (error) {
+      console.error("Error updating product: ", error);
+      alert('Failed to update product in database.');
+    }
   };
 
-  const editProduct = (updatedProduct: any) => {
-    const updated = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
-    saveAndSetProducts(updated);
+  const deleteProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+    } catch (error) {
+      console.error("Error deleting product: ", error);
+      alert('Failed to delete product from database.');
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    const updated = products.filter((p) => p.id !== id);
-    saveAndSetProducts(updated);
-  };
-
-  const reduceStock = (orderedItems: any[]) => {
-    let updated = [...products];
-    orderedItems.forEach((item) => {
-      const index = updated.findIndex((p) => p.name === item.name || p.id === item.id);
-      if (index !== -1) {
-        const currentUnits = parseInt(updated[index].units, 10) || 0;
-        const orderedQty = parseInt(item.quantity, 10) || 1;
-        const newUnits = Math.max(0, currentUnits - orderedQty);
-        updated[index] = { ...updated[index], units: newUnits };
+  const reduceStock = async (orderedItems: any[]) => {
+    try {
+      for (const item of orderedItems) {
+        const matchingProduct = products.find((p) => p.name === item.name || p.id === item.id);
+        if (matchingProduct) {
+          const currentUnits = parseInt(matchingProduct.units, 10) || 0;
+          const orderedQty = parseInt(item.quantity, 10) || 1;
+          const newUnits = Math.max(0, currentUnits - orderedQty);
+          
+          const productRef = doc(db, 'products', matchingProduct.id);
+          await updateDoc(productRef, { units: newUnits });
+        }
       }
-    });
-    saveAndSetProducts(updated);
+    } catch (error) {
+      console.error("Error reducing stock: ", error);
+    }
   };
 
   return (
