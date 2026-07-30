@@ -2,13 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB5msbe353ZIXKDnCEh_nC81EeOfaVmvuo",
-  authDomain: "todaytrendshop-fe9bf.firebaseapp.com",
-  projectId: "todaytrendshop-fe9bf",
-  storageBucket: "todaytrendshop-fe9bf.firebasestorage.app",
-  messagingSenderId: "979493305749",
-  appId: "1:979493305749:web:c0100c0dff59f237528a9c",
-  measurementId: "G-MGJ08RWG8V"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
