@@ -7,6 +7,8 @@ import { useProducts } from './context/ProductContext';
 import { useCart } from './context/CartContext';
 import { useWishlist } from './context/WishlistContext';
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { db } from './lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
@@ -28,34 +30,24 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
 
-    const loadBanners = () => {
-      const savedHeroBanners = localStorage.getItem('tts_hero_banners');
-      if (savedHeroBanners) {
-        try { setHeroBanners(JSON.parse(savedHeroBanners)); } catch (e) { setHeroBanners([]); }
-      } else {
-        const single = localStorage.getItem('tts_hero_banner');
-        if (single) setHeroBanners([single]);
-        else setHeroBanners([]);
+    const fetchDatabaseBanners = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'store_banners');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.heroBanners) setHeroBanners(data.heroBanners);
+          if (data.mobileHeroBanners) setMobileHeroBanners(data.mobileHeroBanners);
+          if (data.poster1) setPoster1(data.poster1);
+          if (data.poster2) setPoster2(data.poster2);
+          if (data.poster3) setPoster3(data.poster3);
+        }
+      } catch (error) {
+        console.error("Error fetching banners from Firebase:", error);
       }
-
-      const savedMobileBanners = localStorage.getItem('tts_mobile_hero_banners');
-      if (savedMobileBanners) {
-        try { setMobileHeroBanners(JSON.parse(savedMobileBanners)); } catch (e) { setMobileHeroBanners([]); }
-      } else {
-        setMobileHeroBanners([]);
-      }
-
-      const p1 = localStorage.getItem('tts_poster1');
-      setPoster1(p1 || '');
-      const p2 = localStorage.getItem('tts_poster2');
-      setPoster2(p2 || '');
-      const p3 = localStorage.getItem('tts_poster3');
-      setPoster3(p3 || '');
     };
 
-    loadBanners();
-    window.addEventListener('storage', loadBanners);
-    return () => window.removeEventListener('storage', loadBanners);
+    fetchDatabaseBanners();
   }, []);
 
   // AUTO-SLIDE HERO BANNERS
@@ -327,7 +319,6 @@ export default function Home() {
                         </span>
                       )}
 
-                      {/* Wishlist Button - White & Clean Theme Styled */}
                       <button
                         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           e.preventDefault();
@@ -339,7 +330,6 @@ export default function Home() {
                         <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-600 text-red-600' : 'text-stone-800'}`} />
                       </button>
 
-                      {/* Add to Cart Button - White Theme Styled with Elegant Font Tracking */}
                       {!isSoldOut && (
                         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 z-10">
                           <button
