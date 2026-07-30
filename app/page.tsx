@@ -6,9 +6,8 @@ import Link from 'next/link';
 import { useProducts } from './context/ProductContext';
 import { useCart } from './context/CartContext';
 import { useWishlist } from './context/WishlistContext';
+import { useBanners } from './context/BannerContext';
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { db } from './lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
@@ -18,36 +17,12 @@ export default function Home() {
 
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { heroBanners, mobileHeroBanners, poster1, poster2, poster3 } = useBanners();
 
-  const [heroBanners, setHeroBanners] = useState<string[]>([]);
-  const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-
-  const [poster1, setPoster1] = useState('');
-  const [poster2, setPoster2] = useState('');
-  const [poster3, setPoster3] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
-
-    const fetchDatabaseBanners = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'store_banners');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.heroBanners) setHeroBanners(data.heroBanners);
-          if (data.mobileHeroBanners) setMobileHeroBanners(data.mobileHeroBanners);
-          if (data.poster1) setPoster1(data.poster1);
-          if (data.poster2) setPoster2(data.poster2);
-          if (data.poster3) setPoster3(data.poster3);
-        }
-      } catch (error) {
-        console.error("Error fetching banners from Firebase:", error);
-      }
-    };
-
-    fetchDatabaseBanners();
   }, []);
 
   // AUTO-SLIDE HERO BANNERS
