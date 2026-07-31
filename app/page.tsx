@@ -191,13 +191,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. PROMO BANNERS / POSTERS */}
+      {/* 2. PROMO BANNERS / POSTERS (NOW DYNAMIC FROM FIRESTORE) */}
       {(poster1 || poster2 || poster3) && (
         <section className="max-w-7xl mx-auto px-6 pt-4 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {poster1 && (
-              <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+              <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
                 <Image
                   src={poster1}
                   alt="Ladies Collection"
@@ -214,7 +214,7 @@ export default function Home() {
             )}
 
             {poster2 && (
-              <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+              <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
                 <Image
                   src={poster2}
                   alt="Kids Festive Collection"
@@ -231,7 +231,7 @@ export default function Home() {
             )}
 
             {poster3 && (
-              <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block">
+              <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
                 <Image
                   src={poster3}
                   alt="New Arrivals"
