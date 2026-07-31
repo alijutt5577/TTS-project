@@ -95,7 +95,7 @@ export default function Navbar() {
   };
 
   // Format phone number safely for WhatsApp
-  let formattedPhone = supportPhone.trim().replace(/[^0-9]/g, '');
+  let formattedPhone = (supportPhone || '').trim().replace(/[^0-9]/g, '');
   if (formattedPhone.startsWith('0')) {
     formattedPhone = '92' + formattedPhone.slice(1);
   }
