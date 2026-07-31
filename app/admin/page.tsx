@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
 import { useBanners } from '../context/BannerContext';
+import { useSettings } from '../context/SettingsContext';
 import { 
   Plus, Package, ShoppingBag, Trash2, ArrowLeft, Lock, LogOut, 
   DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare, Menu 
@@ -18,6 +19,12 @@ export default function AdminDashboard() {
   const editProduct = productContext.editProduct;
 
   const { heroBanners: dbHero, mobileHeroBanners: dbMobileHero, poster1: dbP1, poster2: dbP2, poster3: dbP3, updateBanners } = useBanners();
+  const { 
+    announcementText: dbAnn, storeStatus: dbStatus, supportPhone: dbPhone, 
+    contactEmail: dbEmail, contactLocation: dbLoc, contactHours: dbHrs, 
+    adminUser: dbUsr, adminPass: dbPwd, orders: dbOrders, inquiries: dbInq, 
+    updateSettings, updateOrderStatus, deleteOrder, deleteInquiry 
+  } = useSettings();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -70,27 +77,6 @@ export default function AdminDashboard() {
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editImages, setEditImages] = useState<string[]>([]);
 
-  // Load Saved Orders
-  const [orders, setOrders] = useState<any[]>([
-    {
-      id: 'ORD-101',
-      customer: 'Ali Raza',
-      phone: '03001234567',
-      city: 'Lahore',
-      address: 'House 12, Block C, Gulberg III',
-      total: 'PKR 12,600',
-      items: 'Embroidered Lawn 3-Piece (x2)',
-      itemDetails: [
-        { name: 'Embroidered Lawn 3-Piece', quantity: 2, price: 'PKR 6,300', image: '/poster1.jpg' }
-      ],
-      date: '2026-07-23',
-      status: 'New',
-    },
-  ]);
-
-  // Load Saved Inquiries
-  const [inquiries, setInquiries] = useState<any[]>([]);
-
   useEffect(() => {
     if (dbHero && dbHero.length > 0) setHeroBanners(dbHero);
     if (dbMobileHero && dbMobileHero.length > 0) setMobileHeroBanners(dbMobileHero);
@@ -100,47 +86,15 @@ export default function AdminDashboard() {
   }, [dbHero, dbMobileHero, dbP1, dbP2, dbP3]);
 
   useEffect(() => {
-    const savedAnn = localStorage.getItem('tts_announcement');
-    if (savedAnn) setAnnouncementText(savedAnn);
-
-    const savedUser = localStorage.getItem('tts_admin_user');
-    if (savedUser) setAdminUsername(savedUser);
-
-    const savedPass = localStorage.getItem('tts_admin_pass');
-    if (savedPass) setAdminPassword(savedPass);
-
-    const savedPhone = localStorage.getItem('tts_support_phone');
-    if (savedPhone !== null) setSupportPhone(savedPhone);
-
-    const savedStatus = localStorage.getItem('tts_store_status');
-    if (savedStatus !== null) setStoreStatus(savedStatus === 'true');
-
-    const savedEmail = localStorage.getItem('tts_contact_email');
-    if (savedEmail) setContactEmail(savedEmail);
-    const savedLoc = localStorage.getItem('tts_contact_location');
-    if (savedLoc) setContactLocation(savedLoc);
-    const savedHrs = localStorage.getItem('tts_contact_hours');
-    if (savedHrs) setContactHours(savedHrs);
-
-    const savedLogoTxt = localStorage.getItem('tts_logo_text');
-    if (savedLogoTxt) setLogoText(savedLogoTxt);
-    const savedLogoImg = localStorage.getItem('tts_logo_image');
-    if (savedLogoImg) setLogoImage(savedLogoImg);
-    const savedLogoType = localStorage.getItem('tts_logo_type');
-    if (savedLogoType) setLogoTextOrImg(savedLogoType as any);
-    const savedLogoSize = localStorage.getItem('tts_logo_size');
-    if (savedLogoSize) setLogoSize(savedLogoSize);
-
-    const savedOrders = localStorage.getItem('tts_orders');
-    if (savedOrders) {
-      try { setOrders(JSON.parse(savedOrders)); } catch (e) { console.error('Failed to parse orders', e); }
-    }
-
-    const savedInquiries = localStorage.getItem('tts_inquiries');
-    if (savedInquiries) {
-      try { setInquiries(JSON.parse(savedInquiries)); } catch (e) { console.error('Failed to parse inquiries', e); }
-    }
-  }, []);
+    if (dbAnn) setAnnouncementText(dbAnn);
+    if (dbStatus !== undefined) setStoreStatus(dbStatus);
+    if (dbPhone !== undefined) setSupportPhone(dbPhone);
+    if (dbEmail) setContactEmail(dbEmail);
+    if (dbLoc) setContactLocation(dbLoc);
+    if (dbHrs) setContactHours(dbHrs);
+    if (dbUsr) setAdminUsername(dbUsr);
+    if (dbPwd) setAdminPassword(dbPwd);
+  }, [dbAnn, dbStatus, dbPhone, dbEmail, dbLoc, dbHrs, dbUsr, dbPwd]);
 
   // HIGH DEFINITION IMAGE COMPRESSION (1920px Full HD)
   const compressImage = (file: File, maxWidth = 1920, quality = 0.92): Promise<string> => {
@@ -176,62 +130,39 @@ export default function AdminDashboard() {
     });
   };
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    const updated = orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order);
-    setOrders(updated);
-    localStorage.setItem('tts_orders', JSON.stringify(updated));
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    await updateOrderStatus(orderId, newStatus);
   };
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     if (confirm('Are you sure you want to delete this customer order?')) {
-      const updated = orders.filter(order => order.id !== orderId);
-      setOrders(updated);
-      localStorage.setItem('tts_orders', JSON.stringify(updated));
+      await deleteOrder(orderId);
     }
   };
 
-  const handleDeleteInquiry = (inquiryId: string) => {
+  const handleDeleteInquiry = async (inquiryId: string) => {
     if (confirm('Are you sure you want to delete this inquiry?')) {
-      const updated = inquiries.filter(iq => iq.id !== inquiryId);
-      setInquiries(updated);
-      localStorage.setItem('tts_inquiries', JSON.stringify(updated));
+      await deleteInquiry(inquiryId);
     }
   };
 
-  const handleSaveAnnouncement = () => {
-    localStorage.setItem('tts_announcement', announcementText);
-    window.dispatchEvent(new Event('storage'));
-    alert('Announcement ticker updated & Live on website!');
+  const handleSaveAnnouncement = async () => {
+    await updateSettings({ announcementText });
+    alert('Announcement ticker updated & saved to Firestore Database LIVE!');
   };
 
-  const handleSaveContactDetails = () => {
-    localStorage.setItem('tts_support_phone', supportPhone);
-    localStorage.setItem('tts_contact_email', contactEmail);
-    localStorage.setItem('tts_contact_location', contactLocation);
-    localStorage.setItem('tts_contact_hours', contactHours);
-    window.dispatchEvent(new Event('storage'));
-    alert('Contact Support Details updated & LIVE on website!');
+  const handleSaveContactDetails = async () => {
+    await updateSettings({
+      supportPhone,
+      contactEmail,
+      contactLocation,
+      contactHours
+    });
+    alert('Contact Support Details updated & saved to Firestore Database LIVE!');
   };
 
   const handleSaveBanners = async () => {
     try {
-      localStorage.setItem('tts_logo_type', logoType);
-      localStorage.setItem('tts_logo_text', logoText);
-      localStorage.setItem('tts_logo_image', logoImage);
-      localStorage.setItem('tts_logo_size', logoSize);
-
-      localStorage.setItem('tts_hero_banners', JSON.stringify(heroBanners));
-      if (heroBanners.length > 0) {
-        localStorage.setItem('tts_hero_banner', heroBanners[0]);
-      }
-
-      localStorage.setItem('tts_mobile_hero_banners', JSON.stringify(mobileHeroBanners));
-
-      localStorage.setItem('tts_poster1', poster1);
-      localStorage.setItem('tts_poster2', poster2);
-      localStorage.setItem('tts_poster3', poster3);
-
-      // SAVE TO FIRESTORE DATABASE
       await updateBanners({
         heroBanners,
         mobileHeroBanners,
@@ -239,8 +170,6 @@ export default function AdminDashboard() {
         poster2,
         poster3
       });
-
-      window.dispatchEvent(new Event('storage'));
       alert('Logo & All Banners updated & saved to Firestore Database LIVE!');
     } catch (error) {
       alert('Storage Quota Exceeded or Firebase Error! Please check file sizes.');
@@ -295,28 +224,26 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSaveSettings = () => {
-    localStorage.setItem('tts_support_phone', supportPhone);
-    localStorage.setItem('tts_store_status', String(storeStatus));
-    
+  const handleSaveSettings = async () => {
+    let updatePayload: any = { supportPhone, storeStatus };
     let alertMsg = 'Store settings updated successfully!';
 
     if (newUsername.trim() !== '') {
-      localStorage.setItem('tts_admin_user', newUsername.trim());
+      updatePayload.adminUser = newUsername.trim();
       setAdminUsername(newUsername.trim());
       setNewUsername('');
       alertMsg = 'Admin Credentials updated successfully!';
     }
 
     if (newPassword.trim() !== '') {
-      localStorage.setItem('tts_admin_pass', newPassword.trim());
+      updatePayload.adminPass = newPassword.trim();
       setAdminPassword(newPassword.trim());
       setNewPassword('');
       alertMsg = 'Admin Credentials updated successfully!';
     }
 
+    await updateSettings(updatePayload);
     alert(alertMsg);
-    window.dispatchEvent(new Event('storage'));
   };
 
   const handleCategoryToggle = (cat: string) => {
@@ -419,12 +346,9 @@ export default function AdminDashboard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentValidUser = localStorage.getItem('tts_admin_user') || adminUsername;
-    const currentValidPass = localStorage.getItem('tts_admin_pass') || adminPassword;
-    
     if (
-      (loginEmail === currentValidUser || loginEmail === 'admin@todaytrendshop.com') &&
-      loginPassword === currentValidPass
+      (loginEmail === adminUsername || loginEmail === 'admin@todaytrendshop.com') &&
+      loginPassword === adminPassword
     ) {
       setIsAuthenticated(true);
       setLoginError('');
@@ -475,7 +399,7 @@ export default function AdminDashboard() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalRevenue = orders.reduce((sum, o) => {
+  const totalRevenue = dbOrders.reduce((sum, o) => {
     const priceNum = parseInt(o.total.replace(/[^0-9]/g, ''), 10) || 0;
     return sum + priceNum;
   }, 0);
@@ -630,7 +554,7 @@ export default function AdminDashboard() {
               }`}
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Orders ({orders.length})</span>
+              <span>Orders ({dbOrders.length})</span>
             </button>
 
             <button
@@ -640,7 +564,7 @@ export default function AdminDashboard() {
               }`}
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Inquiries ({inquiries.length})</span>
+              <span>Inquiries ({dbInq.length})</span>
             </button>
 
             <button
@@ -722,7 +646,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-stone-500">Total Orders</p>
-                  <h3 className="text-xl font-bold text-stone-900 mt-1">{orders.length}</h3>
+                  <h3 className="text-xl font-bold text-stone-900 mt-1">{dbOrders.length}</h3>
                 </div>
               </div>
 
@@ -758,7 +682,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-              {inquiries.length === 0 ? (
+              {dbInq.length === 0 ? (
                 <div className="p-8 text-center text-xs text-stone-500 uppercase tracking-widest">
                   No customer inquiries received yet.
                 </div>
@@ -774,7 +698,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-200 text-xs text-stone-800">
-                    {inquiries.map((iq) => (
+                    {dbInq.map((iq) => (
                       <tr key={iq.id} className="hover:bg-stone-50">
                         <td className="p-4 font-mono text-[11px] text-stone-500">{iq.date}</td>
                         <td className="p-4">
@@ -1403,7 +1327,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200 text-xs text-stone-800">
-                  {orders.map((order: any) => (
+                  {dbOrders.map((order: any) => (
                     <tr key={order.id} className="hover:bg-stone-50">
                       <td className="p-4 font-mono font-bold text-amber-900">{order.id}</td>
                       <td className="p-4">
