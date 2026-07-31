@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useSettings } from '../context/SettingsContext';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { Mail, MapPin, Clock, Send, MessageCircle, CheckCircle } from 'lucide-react';
 
 export default function ContactPage() {
-  const [supportPhone, setSupportPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('support@todaytrendshop.com');
-  const [contactLocation, setContactLocation] = useState('Lahore, Punjab, Pakistan');
-  const [contactHours, setContactHours] = useState('Monday – Saturday (10:00 AM – 8:00 PM PKT)');
+  const { supportPhone, contactEmail, contactLocation, contactHours } = useSettings();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,32 +19,12 @@ export default function ContactPage() {
 
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const loadContactData = () => {
-      const savedPhone = localStorage.getItem('tts_support_phone');
-      if (savedPhone) setSupportPhone(savedPhone);
-
-      const savedEmail = localStorage.getItem('tts_contact_email');
-      if (savedEmail) setContactEmail(savedEmail);
-
-      const savedLoc = localStorage.getItem('tts_contact_location');
-      if (savedLoc) setContactLocation(savedLoc);
-
-      const savedHrs = localStorage.getItem('tts_contact_hours');
-      if (savedHrs) setContactHours(savedHrs);
-    };
-
-    loadContactData();
-    window.addEventListener('storage', loadContactData);
-    return () => window.removeEventListener('storage', loadContactData);
-  }, []);
-
-  let cleanPhone = supportPhone.trim().replace(/[^0-9]/g, '');
+  let cleanPhone = (supportPhone || '').trim().replace(/[^0-9]/g, '');
   if (cleanPhone.startsWith('0')) {
     cleanPhone = '92' + cleanPhone.slice(1);
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.phone || !formData.message) {
@@ -52,38 +32,35 @@ export default function ContactPage() {
       return;
     }
 
-    // 1. SAVE INQUIRY TO LOCALSTORAGE FOR ADMIN PANEL
-    const newInquiry = {
-      id: `INQ-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: formData.name,
-      phone: formData.phone,
-      orderId: formData.orderId,
-      subject: formData.subject,
-      message: formData.message,
-      date: new Date().toLocaleString(),
-    };
+    try {
+      // SAVE INQUIRY TO FIRESTORE DATABASE
+      await addDoc(collection(db, 'inquiries'), {
+        name: formData.name,
+        phone: formData.phone,
+        orderId: formData.orderId || 'N/A',
+        subject: formData.subject,
+        message: formData.message,
+        date: new Date().toLocaleString(),
+      });
 
-    const existingInquiries = JSON.parse(localStorage.getItem('tts_inquiries') || '[]');
-    const updatedInquiries = [newInquiry, ...existingInquiries];
-    localStorage.setItem('tts_inquiries', JSON.stringify(updatedInquiries));
+      // OPEN WHATSAPP IF PHONE NUMBER IS CONFIGURED
+      if (cleanPhone !== '') {
+        const waMsg = `📩 *NEW CONTACT INQUIRY - TTS*\n\n` +
+          `👤 *Name:* ${formData.name}\n` +
+          `📞 *Phone:* ${formData.phone}\n` +
+          `🆔 *Order ID:* ${formData.orderId || 'N/A'}\n` +
+          `🏷️ *Subject:* ${formData.subject}\n\n` +
+          `💬 *Message:* ${formData.message}`;
 
-    // Trigger storage event for instant admin panel update
-    window.dispatchEvent(new Event('storage'));
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`, '_blank');
+      }
 
-    // 2. OPEN WHATSAPP IF PHONE NUMBER IS CONFIGURED
-    if (cleanPhone !== '') {
-      const waMsg = `📩 *NEW CONTACT INQUIRY - TTS*\n\n` +
-        `👤 *Name:* ${formData.name}\n` +
-        `📞 *Phone:* ${formData.phone}\n` +
-        `🆔 *Order ID:* ${formData.orderId || 'N/A'}\n` +
-        `🏷️ *Subject:* ${formData.subject}\n\n` +
-        `💬 *Message:* ${formData.message}`;
-
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`, '_blank');
+      setSubmitted(true);
+      setFormData({ name: '', phone: '', orderId: '', subject: 'Order Status Inquiry', message: '' });
+    } catch (error) {
+      console.error("Error saving inquiry to database:", error);
+      alert("Failed to send inquiry. Please try again.");
     }
-
-    setSubmitted(true);
-    setFormData({ name: '', phone: '', orderId: '', subject: 'Order Status Inquiry', message: '' });
   };
 
   return (
@@ -169,7 +146,7 @@ export default function ContactPage() {
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center space-y-2">
                 <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
                 <h4 className="font-serif text-base font-semibold text-green-900">Message Sent Successfully!</h4>
-                <p className="text-xs text-stone-600">Thank you for reaching out. Your inquiry has been saved and our team will contact you soon.</p>
+                <p className="text-xs text-stone-600">Thank you for reaching out. Your inquiry has been saved to the database and our team will contact you soon.</p>
                 <button
                   onClick={() => setSubmitted(false)}
                   className="mt-4 text-xs font-bold text-amber-900 underline uppercase tracking-wider cursor-pointer"
