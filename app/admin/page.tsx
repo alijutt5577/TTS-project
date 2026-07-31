@@ -12,19 +12,44 @@ import {
 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const productContext = useProducts() as any;
-  const productList = productContext.products || [];
-  const addProduct = productContext.addProduct;
-  const deleteProduct = productContext.deleteProduct;
-  const editProduct = productContext.editProduct;
+  const [isMounted, setIsMounted] = useState(false);
 
-  const { heroBanners: dbHero, mobileHeroBanners: dbMobileHero, poster1: dbP1, poster2: dbP2, poster3: dbP3, updateBanners } = useBanners();
-  const { 
-    announcementText: dbAnn, storeStatus: dbStatus, supportPhone: dbPhone, 
-    contactEmail: dbEmail, contactLocation: dbLoc, contactHours: dbHrs, 
-    adminUser: dbUsr, adminPass: dbPwd, orders: dbOrders, inquiries: dbInq, 
-    updateSettings, updateOrderStatus, deleteOrder, deleteInquiry 
-  } = useSettings();
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const productContext = useProducts() as any;
+  const productList = productContext?.products || [];
+  const addProduct = productContext?.addProduct || (() => {});
+  const deleteProduct = productContext?.deleteProduct || (() => {});
+  const editProduct = productContext?.editProduct || (() => {});
+
+  const bannerContext = useBanners() as any;
+  const dbHero = bannerContext?.heroBanners || [];
+  const dbMobileHero = bannerContext?.mobileHeroBanners || [];
+  const dbP1 = bannerContext?.poster1 || '/poster1.jpg';
+  const dbP2 = bannerContext?.poster2 || '/poster2.jpg';
+  const dbP3 = bannerContext?.poster3 || '/poster3.jpg';
+  const updateBanners = bannerContext?.updateBanners || (async () => {});
+
+  const settingsContext = useSettings() as any;
+  const dbAnn = settingsContext?.announcementText || '';
+  const dbStatus = settingsContext?.storeStatus ?? true;
+  const dbPhone = settingsContext?.supportPhone || '';
+  const dbEmail = settingsContext?.contactEmail || '';
+  const dbLoc = settingsContext?.contactLocation || '';
+  const dbHrs = settingsContext?.contactHours || '';
+  const dbUsr = settingsContext?.adminUser || 'admin';
+  const dbPwd = settingsContext?.adminPass || 'admin123';
+  const dbOrders = settingsContext?.orders || [];
+  const dbInq = settingsContext?.inquiries || [];
+  const updateSettings = settingsContext?.updateSettings || (async () => {});
+  const updateAnnouncement = settingsContext?.updateAnnouncement || (async () => {});
+  const updateContactSupport = settingsContext?.updateContactSupport || (async () => {});
+  const updateStoreSettings = settingsContext?.updateStoreSettings || (async () => {});
+  const updateOrderStatus = settingsContext?.updateOrderStatus || (async () => {});
+  const deleteOrder = settingsContext?.deleteOrder || (async () => {});
+  const deleteInquiry = settingsContext?.deleteInquiry || (async () => {});
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -39,18 +64,15 @@ export default function AdminDashboard() {
   const [storeStatus, setStoreStatus] = useState(true);
   const [supportPhone, setSupportPhone] = useState('');
   
-  // CONTACT SUPPORT DETAILS STATE
   const [contactEmail, setContactEmail] = useState('support@todaytrendshop.com');
   const [contactLocation, setContactLocation] = useState('Faisalabad, Punjab, Pakistan');
   const [contactHours, setContactHours] = useState('24/7 hours');
 
-  // ADMIN CREDENTIALS STATE
   const [adminUsername, setAdminUsername] = useState('admin');
   const [newUsername, setNewUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('admin123');
   const [newPassword, setNewPassword] = useState('');
 
-  // LOGO & MULTI HERO BANNERS STATE
   const [logoType, setLogoTextOrImg] = useState<'text' | 'image'>('text');
   const [logoText, setLogoText] = useState('TTS');
   const [logoImage, setLogoImage] = useState('');
@@ -62,14 +84,12 @@ export default function AdminDashboard() {
   const [poster2, setPoster2] = useState('/poster2.jpg');
   const [poster3, setPoster3] = useState('/poster3.jpg');
 
-  // ADD PRODUCT STATES
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductUnits, setNewProductUnits] = useState('10');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['New Arrivals']);
   const [imagePreviews, setImagePreviews] = useState<string[]>(['/poster1.jpg']);
 
-  // EDIT PRODUCT MODAL STATES
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -96,7 +116,10 @@ export default function AdminDashboard() {
     if (dbPwd) setAdminPassword(dbPwd);
   }, [dbAnn, dbStatus, dbPhone, dbEmail, dbLoc, dbHrs, dbUsr, dbPwd]);
 
-  // HIGH DEFINITION IMAGE COMPRESSION (1920px Full HD)
+  if (!isMounted) {
+    return <div className="min-h-screen bg-[#181818]" />;
+  }
+
   const compressImage = (file: File, maxWidth = 1920, quality = 0.92): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -147,17 +170,16 @@ export default function AdminDashboard() {
   };
 
   const handleSaveAnnouncement = async () => {
+    if (updateAnnouncement) await updateAnnouncement(announcementText);
     await updateSettings({ announcementText });
     alert('Announcement ticker updated & saved to Firestore Database LIVE!');
   };
 
   const handleSaveContactDetails = async () => {
-    await updateSettings({
-      supportPhone,
-      contactEmail,
-      contactLocation,
-      contactHours
-    });
+    if (updateContactSupport) {
+      await updateContactSupport({ supportPhone, contactEmail, contactLocation, contactHours });
+    }
+    await updateSettings({ supportPhone, contactEmail, contactLocation, contactHours });
     alert('Contact Support Details updated & saved to Firestore Database LIVE!');
   };
 
@@ -242,6 +264,7 @@ export default function AdminDashboard() {
       alertMsg = 'Admin Credentials updated successfully!';
     }
 
+    if (updateStoreSettings) await updateStoreSettings(updatePayload);
     await updateSettings(updatePayload);
     alert(alertMsg);
   };
@@ -399,8 +422,8 @@ export default function AdminDashboard() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalRevenue = dbOrders.reduce((sum, o) => {
-    const priceNum = parseInt(o.total.replace(/[^0-9]/g, ''), 10) || 0;
+  const totalRevenue = dbOrders.reduce((sum: number, o: any) => {
+    const priceNum = parseInt(o.total?.replace(/[^0-9]/g, '') || '0', 10) || 0;
     return sum + priceNum;
   }, 0);
 
@@ -698,7 +721,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-200 text-xs text-stone-800">
-                    {dbInq.map((iq) => (
+                    {dbInq.map((iq: any) => (
                       <tr key={iq.id} className="hover:bg-stone-50">
                         <td className="p-4 font-mono text-[11px] text-stone-500">{iq.date}</td>
                         <td className="p-4">
