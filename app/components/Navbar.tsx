@@ -8,6 +8,8 @@ import { User, Heart, ShoppingBag, X, Trash2, MessageCircle, Search, Menu, Home,
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductContext';
+import { useSettings } from '../context/SettingsContext';
+import { useBanners } from '../context/BannerContext';
 import CheckoutModal from './CheckoutModal';
 
 export default function Navbar() {
@@ -18,8 +20,8 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [announcementText, setAnnouncementText] = useState('FREE SHIPPING NATIONWIDE ❖ SHOP NEW ARRIVALS');
-  const [supportPhone, setSupportPhone] = useState('');
+  const { announcementText, supportPhone } = useSettings();
+  const { heroBanners } = useBanners();
 
   // DYNAMIC LOGO STATES
   const [logoType, setLogoType] = useState<'text' | 'image'>('text');
@@ -41,14 +43,8 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    // Load Initial Settings & Logo From LocalStorage
-    const loadSettings = () => {
-      const savedAnn = localStorage.getItem('tts_announcement');
-      if (savedAnn) setAnnouncementText(savedAnn);
-
-      const savedPhone = localStorage.getItem('tts_support_phone');
-      if (savedPhone !== null) setSupportPhone(savedPhone);
-
+    // Load Local Logo Settings
+    const loadLogoSettings = () => {
       const savedLogoType = localStorage.getItem('tts_logo_type');
       if (savedLogoType) setLogoType(savedLogoType as any);
 
@@ -62,14 +58,14 @@ export default function Navbar() {
       if (savedLogoSize) setLogoSize(savedLogoSize);
     };
 
-    loadSettings();
+    loadLogoSettings();
 
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('storage', loadSettings);
+    window.addEventListener('storage', loadLogoSettings);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('storage', loadSettings);
+      window.removeEventListener('storage', loadLogoSettings);
     };
   }, []);
 
@@ -133,7 +129,7 @@ export default function Navbar() {
         <nav className="w-full font-sans py-3 relative">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
             
-            {/* LEFT: HAMBURGER (ONLY MOBILE) & DESKTOP LINKS (ONLY LAPTOP) */}
+            {/* LEFT: HAMBURGER & DESKTOP LINKS */}
             <div className="flex items-center space-x-4">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -398,7 +394,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* WISHLIST DRAWER (WHITE LUXURY THEME) */}
+      {/* WISHLIST DRAWER */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
           isWishlistOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -467,7 +463,7 @@ export default function Navbar() {
         </div>
       </aside>
 
-      {/* CART DRAWER (WHITE LUXURY THEME) */}
+      {/* CART DRAWER */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
           isCartOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'

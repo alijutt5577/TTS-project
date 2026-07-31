@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 
 interface SettingsContextType {
   announcementText: string;
@@ -15,7 +15,9 @@ interface SettingsContextType {
   adminPass: string;
   orders: any[];
   inquiries: any[];
-  updateSettings: (newSettings: any) => Promise<void>;
+  updateAnnouncement: (text: string) => Promise<void>;
+  updateContactSupport: (data: any) => Promise<void>;
+  updateStoreSettings: (data: any) => Promise<void>;
   updateOrderStatus: (orderId: string, newStatus: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   deleteInquiry: (inqId: string) => Promise<void>;
@@ -26,73 +28,91 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [announcementText, setAnnouncementText] = useState('FREE SHIPPING NATIONWIDE ❖ 100% UNSTITCHED LUXURY FABRIC');
   const [storeStatus, setStoreStatus] = useState(true);
-  const [supportPhone, setSupportPhone] = useState('');
+  const [supportPhone, setSupportPhone] = useState('923046667449');
   const [contactEmail, setContactEmail] = useState('support@todaytrendshop.com');
-  const [contactLocation, setContactLocation] = useState('Lahore, Punjab, Pakistan');
-  const [contactHours, setContactHours] = useState('Monday – Saturday (10:00 AM – 8:00 PM PKT)');
+  const [contactLocation, setContactLocation] = useState('Faisalabad, Punjab, Pakistan');
+  const [contactHours, setContactHours] = useState('24/7 hours');
   const [adminUser, setAdminUser] = useState('admin');
   const [adminPass, setAdminPass] = useState('admin123');
   const [orders, setOrders] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchAllSettings = async () => {
+    const fetchAllData = async () => {
       try {
-        // Fetch Store Configurations
-        const docRef = doc(db, 'settings', 'store_config');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.announcementText) setAnnouncementText(data.announcementText);
-          if (data.storeStatus !== undefined) setStoreStatus(data.storeStatus);
+        const annDoc = await getDoc(doc(db, 'announcements', 'current'));
+        if (annDoc.exists() && annDoc.data().text) {
+          setAnnouncementText(annDoc.data().text);
+        }
+
+        const contactDoc = await getDoc(doc(db, 'contact_support', 'details'));
+        if (contactDoc.exists()) {
+          const data = contactDoc.data();
           if (data.supportPhone !== undefined) setSupportPhone(data.supportPhone);
           if (data.contactEmail) setContactEmail(data.contactEmail);
           if (data.contactLocation) setContactLocation(data.contactLocation);
           if (data.contactHours) setContactHours(data.contactHours);
+        }
+
+        const storeDoc = await getDoc(doc(db, 'store_settings', 'config'));
+        if (storeDoc.exists()) {
+          const data = storeDoc.data();
+          if (data.storeStatus !== undefined) setStoreStatus(data.storeStatus);
+          if (data.supportPhone !== undefined) setSupportPhone(data.supportPhone);
           if (data.adminUser) setAdminUser(data.adminUser);
           if (data.adminPass) setAdminPass(data.adminPass);
         }
 
-        // Fetch Orders from Firestore
         const ordersSnap = await getDocs(collection(db, 'orders'));
-        const ordersList = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (ordersList.length > 0) setOrders(ordersList);
+        setOrders(ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-        // Fetch Inquiries from Firestore
         const inqSnap = await getDocs(collection(db, 'inquiries'));
-        const inqList = inqSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (inqList.length > 0) setInquiries(inqList);
+        setInquiries(inqSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       } catch (error) {
-        console.error("Error fetching settings from Firestore:", error);
+        console.error("Error fetching data:", error);
       }
     };
 
-    fetchAllSettings();
+    fetchAllData();
   }, []);
 
-  const updateSettings = async (newData: any) => {
+  const updateAnnouncement = async (text: string) => {
     try {
-      const docRef = doc(db, 'settings', 'store_config');
-      await setDoc(docRef, newData, { merge: true });
-
-      if (newData.announcementText !== undefined) setAnnouncementText(newData.announcementText);
-      if (newData.storeStatus !== undefined) setStoreStatus(newData.storeStatus);
-      if (newData.supportPhone !== undefined) setSupportPhone(newData.supportPhone);
-      if (newData.contactEmail !== undefined) setContactEmail(newData.contactEmail);
-      if (newData.contactLocation !== undefined) setContactLocation(newData.contactLocation);
-      if (newData.contactHours !== undefined) setContactHours(newData.contactHours);
-      if (newData.adminUser !== undefined) setAdminUser(newData.adminUser);
-      if (newData.adminPass !== undefined) setAdminPass(newData.adminPass);
+      await setDoc(doc(db, 'announcements', 'current'), { text }, { merge: true });
+      setAnnouncementText(text);
     } catch (error) {
-      console.error("Error updating settings:", error);
+      console.error("Error updating announcement:", error);
+    }
+  };
+
+  const updateContactSupport = async (data: any) => {
+    try {
+      await setDoc(doc(db, 'contact_support', 'details'), data, { merge: true });
+      if (data.supportPhone !== undefined) setSupportPhone(data.supportPhone);
+      if (data.contactEmail) setContactEmail(data.contactEmail);
+      if (data.contactLocation) setContactLocation(data.contactLocation);
+      if (data.contactHours) setContactHours(data.contactHours);
+    } catch (error) {
+      console.error("Error updating contact support:", error);
+    }
+  };
+
+  const updateStoreSettings = async (data: any) => {
+    try {
+      await setDoc(doc(db, 'store_settings', 'config'), data, { merge: true });
+      if (data.storeStatus !== undefined) setStoreStatus(data.storeStatus);
+      if (data.supportPhone !== undefined) setSupportPhone(data.supportPhone);
+      if (data.adminUser) setAdminUser(data.adminUser);
+      if (data.adminPass) setAdminPass(data.adminPass);
+    } catch (error) {
+      console.error("Error updating store settings:", error);
     }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, { status: newStatus });
+      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -120,7 +140,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   return (
     <SettingsContext.Provider value={{
       announcementText, storeStatus, supportPhone, contactEmail, contactLocation, contactHours,
-      adminUser, adminPass, orders, inquiries, updateSettings, updateOrderStatus, deleteOrder, deleteInquiry
+      adminUser, adminPass, orders, inquiries, updateAnnouncement, updateContactSupport, 
+      updateStoreSettings, updateOrderStatus, deleteOrder, deleteInquiry
     }}>
       {children}
     </SettingsContext.Provider>
