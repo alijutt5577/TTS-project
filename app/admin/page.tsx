@@ -41,8 +41,8 @@ export default function AdminDashboard() {
   
   // CONTACT SUPPORT DETAILS STATE
   const [contactEmail, setContactEmail] = useState('support@todaytrendshop.com');
-  const [contactLocation, setContactLocation] = useState('Lahore, Punjab, Pakistan');
-  const [contactHours, setContactHours] = useState('Monday – Saturday (10:00 AM – 8:00 PM PKT)');
+  const [contactLocation, setContactLocation] = useState('Faisalabad, Punjab, Pakistan');
+  const [contactHours, setContactHours] = useState('24/7 hours');
 
   // ADMIN CREDENTIALS STATE
   const [adminUsername, setAdminUsername] = useState('admin');
