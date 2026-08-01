@@ -31,7 +31,6 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const fetchBannersAndPosters = async () => {
       try {
-        // Fetch Hero Banners
         const bannerDoc = await getDoc(doc(db, 'settings', 'store_banners'));
         if (bannerDoc.exists()) {
           const data = bannerDoc.data();
@@ -43,7 +42,6 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        // Fetch Posters from 'store_posters' document
         const posterDoc = await getDoc(doc(db, 'settings', 'store_posters'));
         if (posterDoc.exists()) {
           const pData = posterDoc.data();
@@ -58,7 +56,7 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error("Error fetching banners/posters from Firestore:", error);
+        console.error("Error fetching banners/posters:", error);
       }
     };
 
@@ -73,28 +71,26 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
     newArrivals: string;
   }) => {
     try {
-      // Save Banners to 'store_banners'
       await setDoc(doc(db, 'settings', 'store_banners'), {
         heroBanners: data.heroBanners,
         mobileHeroBanners: data.mobileHeroBanners
       }, { merge: true });
 
-      // Save Posters to 'store_posters' with exact spaced keys
       const posterPayload = {
-        'ladies collection': data.ladiesCollection || '/poster1.jpg',
-        'kids festive collection': data.kidsFestiveCollection || '/poster2.jpg',
-        'new arrivals': data.newArrivals || '/poster3.jpg',
+        'ladies collection': data.ladiesCollection || '',
+        'kids festive collection': data.kidsFestiveCollection || '',
+        'new arrivals': data.newArrivals || '',
       };
 
       await setDoc(doc(db, 'settings', 'store_posters'), posterPayload, { merge: true });
 
       setHeroBanners(data.heroBanners);
       setMobileHeroBanners(data.mobileHeroBanners);
-      setLadiesCollection(posterPayload['ladies collection']);
-      setKidsFestiveCollection(posterPayload['kids festive collection']);
-      setNewArrivals(posterPayload['new arrivals']);
+      if (data.ladiesCollection) setLadiesCollection(data.ladiesCollection);
+      if (data.kidsFestiveCollection) setKidsFestiveCollection(data.kidsFestiveCollection);
+      if (data.newArrivals) setNewArrivals(data.newArrivals);
     } catch (error) {
-      console.error("Error updating banners/posters in Firestore:", error);
+      console.error("Error updating banners/posters:", error);
       throw error;
     }
   };

@@ -27,9 +27,9 @@ export default function AdminDashboard() {
   const bannerContext = useBanners() as any;
   const dbHero = bannerContext?.heroBanners || [];
   const dbMobileHero = bannerContext?.mobileHeroBanners || [];
-  const dbP1 = bannerContext?.poster1 || '/poster1.jpg';
-  const dbP2 = bannerContext?.poster2 || '/poster2.jpg';
-  const dbP3 = bannerContext?.poster3 || '/poster3.jpg';
+  const dbLadies = bannerContext?.ladiesCollection || '';
+  const dbKids = bannerContext?.kidsFestiveCollection || '';
+  const dbNewArr = bannerContext?.newArrivals || '';
   const updateBanners = bannerContext?.updateBanners || (async () => {});
 
   const settingsContext = useSettings() as any;
@@ -80,9 +80,9 @@ export default function AdminDashboard() {
   
   const [heroBanners, setHeroBanners] = useState<string[]>(['/herobanners.jpg']);
   const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>(['/herobanners.jpg']);
-  const [poster1, setPoster1] = useState('/poster1.jpg');
-  const [poster2, setPoster2] = useState('/poster2.jpg');
-  const [poster3, setPoster3] = useState('/poster3.jpg');
+  const [ladiesCollection, setLadiesCollection] = useState('');
+  const [kidsFestiveCollection, setKidsFestiveCollection] = useState('');
+  const [newArrivals, setNewArrivals] = useState('');
 
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
@@ -100,10 +100,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (dbHero && dbHero.length > 0) setHeroBanners(dbHero);
     if (dbMobileHero && dbMobileHero.length > 0) setMobileHeroBanners(dbMobileHero);
-    if (dbP1) setPoster1(dbP1);
-    if (dbP2) setPoster2(dbP2);
-    if (dbP3) setPoster3(dbP3);
-  }, [dbHero, dbMobileHero, dbP1, dbP2, dbP3]);
+    if (dbLadies) setLadiesCollection(dbLadies);
+    if (dbKids) setKidsFestiveCollection(dbKids);
+    if (dbNewArr) setNewArrivals(dbNewArr);
+  }, [dbHero, dbMobileHero, dbLadies, dbKids, dbNewArr]);
 
   useEffect(() => {
     if (dbAnn) setAnnouncementText(dbAnn);
@@ -188,9 +188,9 @@ export default function AdminDashboard() {
       await updateBanners({
         heroBanners,
         mobileHeroBanners,
-        poster1,
-        poster2,
-        poster3
+        ladiesCollection,
+        kidsFestiveCollection,
+        newArrivals
       });
       alert('Logo & All Banners updated & saved to Firestore Database LIVE!');
     } catch (error) {
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
     setEditName(product.name);
     setEditPrice(product.price);
     setEditUnits(product.units !== undefined ? String(product.units) : '10');
-    
+  
     if (product.images && Array.isArray(product.images)) {
       setEditImages(product.images);
     } else if (product.image) {
@@ -765,7 +765,7 @@ export default function AdminDashboard() {
 
             <div className="space-y-4 border-b border-stone-200 pb-6">
               <h4 className="text-xs uppercase font-bold text-amber-900 tracking-wider">Website Header Brand Logo</h4>
-              
+  
               <div className="flex items-center space-x-4">
                 <label className="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
                   <input
@@ -912,10 +912,14 @@ export default function AdminDashboard() {
                 <label className="block text-[11px] uppercase font-bold text-stone-800 mb-1">Ladies Collection Poster</label>
                 <label className="border border-dashed border-stone-300 rounded-lg p-3 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 block mb-2">
                   <span className="text-[10px] font-semibold text-stone-700">Upload Photo</span>
-                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setPoster1)} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setLadiesCollection)} className="hidden" />
                 </label>
                 <div className="relative w-full h-36 rounded-lg overflow-hidden border bg-stone-200">
-                  <Image src={poster1} alt="Poster 1" fill className="object-cover object-top" />
+                  {ladiesCollection ? (
+                    <Image src={ladiesCollection} alt="Ladies Poster" fill className="object-cover object-top" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-stone-400">No Image</div>
+                  )}
                 </div>
               </div>
 
@@ -923,10 +927,14 @@ export default function AdminDashboard() {
                 <label className="block text-[11px] uppercase font-bold text-stone-800 mb-1">Kids Festive Poster</label>
                 <label className="border border-dashed border-stone-300 rounded-lg p-3 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 block mb-2">
                   <span className="text-[10px] font-semibold text-stone-700">Upload Photo</span>
-                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setPoster2)} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setKidsFestiveCollection)} className="hidden" />
                 </label>
                 <div className="relative w-full h-36 rounded-lg overflow-hidden border bg-stone-200">
-                  <Image src={poster2} alt="Poster 2" fill className="object-cover object-top" />
+                  {kidsFestiveCollection ? (
+                    <Image src={kidsFestiveCollection} alt="Kids Poster" fill className="object-cover object-top" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-stone-400">No Image</div>
+                  )}
                 </div>
               </div>
 
@@ -934,10 +942,14 @@ export default function AdminDashboard() {
                 <label className="block text-[11px] uppercase font-bold text-stone-800 mb-1">New Arrivals Poster</label>
                 <label className="border border-dashed border-stone-300 rounded-lg p-3 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 block mb-2">
                   <span className="text-[10px] font-semibold text-stone-700">Upload Photo</span>
-                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setPoster3)} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setNewArrivals)} className="hidden" />
                 </label>
                 <div className="relative w-full h-36 rounded-lg overflow-hidden border bg-stone-200">
-                  <Image src={poster3} alt="Poster 3" fill className="object-cover object-top" />
+                  {newArrivals ? (
+                    <Image src={newArrivals} alt="New Arrivals Poster" fill className="object-cover object-top" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs text-stone-400">No Image</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1066,7 +1078,7 @@ export default function AdminDashboard() {
                       <h4 className="font-serif text-xs font-semibold text-stone-900 line-clamp-1">{product.name}</h4>
                       <div className="flex items-center space-x-2 mt-1">
                         <p className="text-xs font-bold text-stone-800">{product.price}</p>
-                        
+  
                         {product.units === 0 || product.units === '0' ? (
                           <span className="text-[9px] bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
                             Sold Out
@@ -1182,7 +1194,7 @@ export default function AdminDashboard() {
                     Click to Upload More Photos
                     <input type="file" accept="image/*" multiple onChange={handleEditMultipleImageChange} className="hidden" />
                   </label>
-                  
+  
                   <div className="flex flex-wrap gap-2">
                     {editImages.map((img, idx) => (
                       <div key={idx} className="relative w-14 h-16 rounded overflow-hidden border bg-stone-100">
@@ -1291,7 +1303,7 @@ export default function AdminDashboard() {
                 <label className="block text-xs uppercase tracking-wider font-semibold text-stone-700 mb-1">
                   Product Gallery Photos (Multiple Select) *
                 </label>
-                
+  
                 <div className="space-y-3 pt-1">
                   <label className="border-2 border-dashed border-stone-300 hover:border-stone-800 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-stone-50 hover:bg-stone-100 transition">
                     <Upload className="w-6 h-6 text-stone-500 mb-1" />
