@@ -7,7 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 
 interface CheckoutModalProps {
@@ -25,7 +25,7 @@ interface CheckoutModalProps {
 
 export default function CheckoutModal({ isOpen, onClose, directProduct }: CheckoutModalProps) {
   const { cart, clearCart } = useCart();
-  const { storeStatus } = useSettings();
+  const { storeStatus, supportPhone } = useSettings();
   const productContext = useProducts() as any;
   const productsList = productContext?.products || [];
   const editProduct = productContext?.editProduct || (() => {});
@@ -58,7 +58,10 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
     setLoading(true);
 
     try {
-      const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+      // SEQUENTIAL REFERENCE NUMBER GENERATOR (REF-001, REF-002...)
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      const nextNum = ordersSnapshot.size + 1;
+      const orderId = `REF-${String(nextNum).padStart(3, '0')}`;
       setAssignedOrderId(orderId);
       
       const itemDetails = activeItems.map(item => ({
@@ -104,7 +107,16 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         console.error("EmailJS sending failed:", emailErr);
       }
 
-      // 3. Deduct Stock Units
+      // 3. WHATSAPP AUTO MESSAGE REDIRECT / TRIGGER
+      if (supportPhone && supportPhone.trim() !== '') {
+        const waNumber = supportPhone.replace(/[^0-9]/g, '');
+        const waMessage = `*New Order Received!*%0A*Ref No:* ${orderId}%0A*Customer:* ${name}%0A*Phone:* ${phone}%0A*City:* ${city}%0A*Address:* ${address}%0A*Items:* ${activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')}%0A*Total:* ${formattedTotal}`;
+        
+        // Background window to open WhatsApp notification if allowed
+        window.open(`https://wa.me/${waNumber}?text=${waMessage}`, '_blank');
+      }
+
+      // 4. Deduct Stock Units
       if (directProduct && productsList.length > 0) {
         const foundProd = productsList.find((p: any) => 
           (directProduct.id && p.id === directProduct.id) || 
@@ -184,7 +196,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
                 Congratulations! 🎉
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed px-4">
-                Thank you for shopping with <span className="font-bold text-stone-900">TTS</span>. Your order (<span className="font-mono font-bold text-amber-900">{assignedOrderId}</span>) has been successfully placed and registered in our dispatch system.
+                Thank you for shopping with <span className="font-bold text-stone-900">TTS</span>. Your order reference (<span className="font-mono font-bold text-amber-900">{assignedOrderId}</span>) has been successfully placed and registered.
               </p>
             </div>
 
