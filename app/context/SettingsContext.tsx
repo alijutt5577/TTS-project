@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 
 interface SettingsContextType {
   announcementText: string;
@@ -112,7 +112,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      // Find document where 'id' field matches orderId (e.g., '0000')
+      const q = query(collection(db, 'orders'), where('id', '==', orderId));
+      const querySnapshot = await getDocs(q);
+      for (const documentSnap of querySnapshot.docs) {
+        await updateDoc(doc(db, 'orders', documentSnap.id), { status: newStatus });
+      }
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -121,7 +126,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const deleteOrder = async (orderId: string) => {
     try {
-      await deleteDoc(doc(db, 'orders', orderId));
+      // Find document where 'id' field matches orderId (e.g., '0000') and delete it
+      const q = query(collection(db, 'orders'), where('id', '==', orderId));
+      const querySnapshot = await getDocs(q);
+      for (const documentSnap of querySnapshot.docs) {
+        await deleteDoc(doc(db, 'orders', documentSnap.id));
+      }
       setOrders(orders.filter(o => o.id !== orderId));
     } catch (error) {
       console.error("Error deleting order:", error);
