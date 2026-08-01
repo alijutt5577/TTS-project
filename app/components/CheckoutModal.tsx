@@ -58,7 +58,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
     setLoading(true);
 
     try {
-      // SEQUENTIAL ZERO-BASED ORDER ID GENERATOR (0000, 0001, 0002...)
+      // ZERO-BASED SEQUENTIAL ORDER NO GENERATOR (0000, 0001, 0002...)
       const ordersSnapshot = await getDocs(collection(db, 'orders'));
       const nextNum = ordersSnapshot.size;
       const orderId = String(nextNum).padStart(4, '0');
@@ -85,7 +85,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         date: new Date().toLocaleString(),
       });
 
-      // 2. Send Email via EmailJS
+      // 2. Send Email via EmailJS with total_amount mapping
       try {
         const emailParams = {
           order_id: orderId,
@@ -93,6 +93,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
           customer_phone: phone,
           customer_city: city,
           customer_address: address,
+          total_amount: formattedTotal,
           order_total: formattedTotal,
           order_items: activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')
         };
@@ -107,7 +108,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         console.error("EmailJS sending failed:", emailErr);
       }
 
-      // 3. WHATSAPP AUTO MESSAGE REDIRECT
+      // 3. WHATSAPP AUTO MESSAGE
       if (supportPhone && supportPhone.trim() !== '') {
         const waNumber = supportPhone.replace(/[^0-9]/g, '');
         const waMessage = `*New Order Received!*%0A*Order No:* ${orderId}%0A*Customer:* ${name}%0A*Phone:* ${phone}%0A*City:* ${city}%0A*Address:* ${address}%0A*Items:* ${activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')}%0A*Total:* ${formattedTotal}`;
