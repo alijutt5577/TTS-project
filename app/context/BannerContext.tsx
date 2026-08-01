@@ -10,50 +10,65 @@ interface BannerContextType {
   poster1: string;
   poster2: string;
   poster3: string;
-  updateBanners: (data: any) => Promise<void>;
+  updateBanners: (data: {
+    heroBanners: string[];
+    mobileHeroBanners: string[];
+    poster1: string;
+    poster2: string;
+    poster3: string;
+  }) => Promise<void>;
 }
 
 const BannerContext = createContext<BannerContextType | undefined>(undefined);
 
 export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
-  const [heroBanners, setHeroBanners] = useState<string[]>([]);
-  const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>([]);
-  const [poster1, setPoster1] = useState('');
-  const [poster2, setPoster2] = useState('');
-  const [poster3, setPoster3] = useState('');
+  const [heroBanners, setHeroBanners] = useState<string[]>(['/herobanners.jpg']);
+  const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>(['/herobanners.jpg']);
+  const [poster1, setPoster1] = useState('/poster1.jpg');
+  const [poster2, setPoster2] = useState('/poster2.jpg');
+  const [poster3, setPoster3] = useState('/poster3.jpg');
 
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const docRef = doc(db, 'settings', 'store_banners');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.heroBanners) setHeroBanners(data.heroBanners);
-          if (data.mobileHeroBanners) setMobileHeroBanners(data.mobileHeroBanners);
+        const bannerDoc = await getDoc(doc(db, 'settings', 'store_banners'));
+        if (bannerDoc.exists()) {
+          const data = bannerDoc.data();
+          if (data.heroBanners && Array.isArray(data.heroBanners) && data.heroBanners.length > 0) {
+            setHeroBanners(data.heroBanners);
+          }
+          if (data.mobileHeroBanners && Array.isArray(data.mobileHeroBanners) && data.mobileHeroBanners.length > 0) {
+            setMobileHeroBanners(data.mobileHeroBanners);
+          }
           if (data.poster1) setPoster1(data.poster1);
           if (data.poster2) setPoster2(data.poster2);
           if (data.poster3) setPoster3(data.poster3);
         }
       } catch (error) {
-        console.error("Error fetching banners:", error);
+        console.error("Error fetching banners from Firestore:", error);
       }
     };
 
     fetchBanners();
   }, []);
 
-  const updateBanners = async (newData: any) => {
+  const updateBanners = async (data: {
+    heroBanners: string[];
+    mobileHeroBanners: string[];
+    poster1: string;
+    poster2: string;
+    poster3: string;
+  }) => {
     try {
-      const docRef = doc(db, 'settings', 'store_banners');
-      await setDoc(docRef, newData, { merge: true });
-      if (newData.heroBanners) setHeroBanners(newData.heroBanners);
-      if (newData.mobileHeroBanners) setMobileHeroBanners(newData.mobileHeroBanners);
-      if (newData.poster1 !== undefined) setPoster1(newData.poster1);
-      if (newData.poster2 !== undefined) setPoster2(newData.poster2);
-      if (newData.poster3 !== undefined) setPoster3(newData.poster3);
+      await setDoc(doc(db, 'settings', 'store_banners'), data, { merge: true });
+      setHeroBanners(data.heroBanners);
+      setMobileHeroBanners(data.mobileHeroBanners);
+      setPoster1(data.poster1);
+      setPoster2(data.poster2);
+      setPoster3(data.poster3);
     } catch (error) {
-      console.error("Error updating banners:", error);
+      console.error("Error updating banners in Firestore:", error);
+      throw error;
     }
   };
 
