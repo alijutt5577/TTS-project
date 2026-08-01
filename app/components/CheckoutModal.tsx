@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, CheckCircle2, ShoppingBag, PartyPopper } from 'lucide-react';
+import { X, ShoppingBag, PartyPopper } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductContext';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -12,16 +13,21 @@ interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   directProduct?: {
+    id?: string;
     name: string;
     price: string;
     quantity: number;
     image?: string;
+    units?: number;
   };
 }
 
 export default function CheckoutModal({ isOpen, onClose, directProduct }: CheckoutModalProps) {
   const { cart, clearCart } = useCart();
   const { storeStatus } = useSettings();
+  const productContext = useProducts() as any;
+  const editProduct = productContext?.editProduct || (() => {});
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
@@ -34,7 +40,10 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
 
   const activeItems = directProduct ? [directProduct] : cart;
 
-  const totalPrice = activeItems.reduce((sum, item) => sum + (parseInt(item.price.replace(/[^0-9]/g, ''), 10) || 0) * item.quantity, 0);
+  const totalPrice = activeItems.reduce((sum, item) => {
+    const rawPrice = parseInt(item.price.replace(/[^0-9]/g, ''), 10) || 0;
+    return sum + rawPrice;
+  }, 0);
   const formattedTotal = `PKR ${totalPrice.toLocaleString()}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,6 +78,36 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         status: 'New',
         date: new Date().toLocaleString(),
       });
+
+      if (directProduct && directProduct.id && productContext?.products) {
+        const foundProd = productContext.products.find((p: any) => p.id === directProduct.id);
+        if (foundProd) {
+          const currentUnits = parseInt(foundProd.units ?? 10, 10);
+          const orderedQty = directProduct.quantity || 1;
+          const newUnits = Math.max(0, currentUnits - orderedQty);
+
+          const updatedProdData = {
+            ...foundProd,
+            units: newUnits,
+          };
+          editProduct(updatedProdData);
+        }
+      } else if (!directProduct && cart.length > 0 && productContext?.products) {
+        for (const cartItem of cart) {
+          const foundProd = productContext.products.find((p: any) => p.id === cartItem.id);
+          if (foundProd) {
+            const currentUnits = parseInt(foundProd.units ?? 10, 10);
+            const orderedQty = cartItem.quantity || 1;
+            const newUnits = Math.max(0, currentUnits - orderedQty);
+
+            const updatedProdData = {
+              ...foundProd,
+              units: newUnits,
+            };
+            editProduct(updatedProdData);
+          }
+        }
+      }
 
       if (!directProduct) {
         clearCart();
