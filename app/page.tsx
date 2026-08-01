@@ -17,7 +17,7 @@ export default function Home() {
 
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
-  const { heroBanners, mobileHeroBanners, poster1, poster2, poster3 } = useBanners();
+  const { heroBanners, mobileHeroBanners, ladiesCollection, kidsFestiveCollection, newArrivals } = useBanners();
 
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
@@ -191,13 +191,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. PROMO BANNERS / POSTERS (DYNAMIC FROM FIRESTORE) */}
+      {/* 2. PROMO BANNERS / POSTERS */}
       <section className="max-w-7xl mx-auto px-6 pt-4 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
             <Image
-              src={poster1 || '/poster1.jpg'}
+              src={ladiesCollection || '/poster1.jpg'}
               alt="Ladies Collection"
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
@@ -212,7 +212,7 @@ export default function Home() {
 
           <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
             <Image
-              src={poster2 || '/poster2.jpg'}
+              src={kidsFestiveCollection || '/poster2.jpg'}
               alt="Kids Festive Collection"
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
@@ -227,7 +227,7 @@ export default function Home() {
 
           <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
             <Image
-              src={poster3 || '/poster3.jpg'}
+              src={newArrivals || '/poster3.jpg'}
               alt="New Arrivals"
               fill
               sizes="(max-width: 768px) 100vw, 33vw"

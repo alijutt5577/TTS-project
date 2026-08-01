@@ -7,15 +7,15 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 interface BannerContextType {
   heroBanners: string[];
   mobileHeroBanners: string[];
-  poster1: string;
-  poster2: string;
-  poster3: string;
+  ladiesCollection: string;
+  kidsFestiveCollection: string;
+  newArrivals: string;
   updateBanners: (data: {
     heroBanners: string[];
     mobileHeroBanners: string[];
-    poster1: string;
-    poster2: string;
-    poster3: string;
+    ladiesCollection: string;
+    kidsFestiveCollection: string;
+    newArrivals: string;
   }) => Promise<void>;
 }
 
@@ -24,13 +24,14 @@ const BannerContext = createContext<BannerContextType | undefined>(undefined);
 export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   const [heroBanners, setHeroBanners] = useState<string[]>(['/herobanners.jpg']);
   const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>(['/herobanners.jpg']);
-  const [poster1, setPoster1] = useState('/poster1.jpg');
-  const [poster2, setPoster2] = useState('/poster2.jpg');
-  const [poster3, setPoster3] = useState('/poster3.jpg');
+  const [ladiesCollection, setLadiesCollection] = useState('/poster1.jpg');
+  const [kidsFestiveCollection, setKidsFestiveCollection] = useState('/poster2.jpg');
+  const [newArrivals, setNewArrivals] = useState('/poster3.jpg');
 
   useEffect(() => {
     const fetchBannersAndPosters = async () => {
       try {
+        // Fetch Hero Banners
         const bannerDoc = await getDoc(doc(db, 'settings', 'store_banners'));
         if (bannerDoc.exists()) {
           const data = bannerDoc.data();
@@ -42,15 +43,22 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
+        // Fetch Posters from 'store_posters' document
         const posterDoc = await getDoc(doc(db, 'settings', 'store_posters'));
         if (posterDoc.exists()) {
           const pData = posterDoc.data();
-          if (pData.poster1 && pData.poster1.trim() !== '') setPoster1(pData.poster1);
-          if (pData.poster2 && pData.poster2.trim() !== '') setPoster2(pData.poster2);
-          if (pData.poster3 && pData.poster3.trim() !== '') setPoster3(pData.poster3);
+          if (pData['ladies collection'] && pData['ladies collection'].trim() !== '') {
+            setLadiesCollection(pData['ladies collection']);
+          }
+          if (pData['kids festive collection'] && pData['kids festive collection'].trim() !== '') {
+            setKidsFestiveCollection(pData['kids festive collection']);
+          }
+          if (pData['new arrivals'] && pData['new arrivals'].trim() !== '') {
+            setNewArrivals(pData['new arrivals']);
+          }
         }
       } catch (error) {
-        console.error("Error fetching banners/posters:", error);
+        console.error("Error fetching banners/posters from Firestore:", error);
       }
     };
 
@@ -60,35 +68,39 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   const updateBanners = async (data: {
     heroBanners: string[];
     mobileHeroBanners: string[];
-    poster1: string;
-    poster2: string;
-    poster3: string;
+    ladiesCollection: string;
+    kidsFestiveCollection: string;
+    newArrivals: string;
   }) => {
     try {
+      // Save Banners to 'store_banners'
       await setDoc(doc(db, 'settings', 'store_banners'), {
         heroBanners: data.heroBanners,
         mobileHeroBanners: data.mobileHeroBanners
       }, { merge: true });
 
-      await setDoc(doc(db, 'settings', 'store_posters'), {
-        poster1: data.poster1 || '/poster1.jpg',
-        poster2: data.poster2 || '/poster2.jpg',
-        poster3: data.poster3 || '/poster3.jpg',
-      }, { merge: true });
+      // Save Posters to 'store_posters' with exact spaced keys
+      const posterPayload = {
+        'ladies collection': data.ladiesCollection || '/poster1.jpg',
+        'kids festive collection': data.kidsFestiveCollection || '/poster2.jpg',
+        'new arrivals': data.newArrivals || '/poster3.jpg',
+      };
+
+      await setDoc(doc(db, 'settings', 'store_posters'), posterPayload, { merge: true });
 
       setHeroBanners(data.heroBanners);
       setMobileHeroBanners(data.mobileHeroBanners);
-      setPoster1(data.poster1 || '/poster1.jpg');
-      setPoster2(data.poster2 || '/poster2.jpg');
-      setPoster3(data.poster3 || '/poster3.jpg');
+      setLadiesCollection(posterPayload['ladies collection']);
+      setKidsFestiveCollection(posterPayload['kids festive collection']);
+      setNewArrivals(posterPayload['new arrivals']);
     } catch (error) {
-      console.error("Error updating banners/posters:", error);
+      console.error("Error updating banners/posters in Firestore:", error);
       throw error;
     }
   };
 
   return (
-    <BannerContext.Provider value={{ heroBanners, mobileHeroBanners, poster1, poster2, poster3, updateBanners }}>
+    <BannerContext.Provider value={{ heroBanners, mobileHeroBanners, ladiesCollection, kidsFestiveCollection, newArrivals, updateBanners }}>
       {children}
     </BannerContext.Provider>
   );
