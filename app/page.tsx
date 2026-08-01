@@ -191,65 +191,57 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. PROMO BANNERS / POSTERS (NOW DYNAMIC FROM FIRESTORE) */}
-      {(poster1 || poster2 || poster3) && (
-        <section className="max-w-7xl mx-auto px-6 pt-4 pb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {poster1 && (
-              <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
-                <Image
-                  src={poster1}
-                  alt="Ladies Collection"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
-                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                    EXPLORE LADIES →
-                  </span>
-                </div>
-              </Link>
-            )}
+      {/* 2. PROMO BANNERS / POSTERS (DYNAMIC FROM FIRESTORE) */}
+      <section className="max-w-7xl mx-auto px-6 pt-4 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <Link href="/ladies" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
+            <Image
+              src={poster1 || '/poster1.jpg'}
+              alt="Ladies Collection"
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                EXPLORE LADIES →
+              </span>
+            </div>
+          </Link>
 
-            {poster2 && (
-              <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
-                <Image
-                  src={poster2}
-                  alt="Kids Festive Collection"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
-                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                    EXPLORE KIDS →
-                  </span>
-                </div>
-              </Link>
-            )}
+          <Link href="/kids" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
+            <Image
+              src={poster2 || '/poster2.jpg'}
+              alt="Kids Festive Collection"
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                EXPLORE KIDS →
+              </span>
+            </div>
+          </Link>
 
-            {poster3 && (
-              <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
-                <Image
-                  src={poster3}
-                  alt="New Arrivals"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
-                  <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
-                    EXPLORE NEW ARRIVALS →
-                  </span>
-                </div>
-              </Link>
-            )}
+          <Link href="/new-arrivals" className="group relative h-[320px] rounded-2xl overflow-hidden shadow-md block bg-stone-200">
+            <Image
+              src={poster3 || '/poster3.jpg'}
+              alt="New Arrivals"
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover object-center w-full h-full group-hover:scale-105 transition duration-500"
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition p-6 flex flex-col justify-end text-white z-10">
+              <span className="text-xs font-bold uppercase tracking-widest underline underline-offset-4 hover:text-amber-300">
+                EXPLORE NEW ARRIVALS →
+              </span>
+            </div>
+          </Link>
 
-          </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* 3. BEST SELLERS SECTION */}
       <section className="max-w-7xl mx-auto px-6 py-12 pb-20">
