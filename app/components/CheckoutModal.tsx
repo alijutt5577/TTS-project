@@ -8,6 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -67,6 +68,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         image: item.image || '/poster1.jpg'
       }));
 
+      // 1. Save Order to Firestore
       await addDoc(collection(db, 'orders'), {
         id: orderId,
         customer: name,
@@ -80,7 +82,29 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         date: new Date().toLocaleString(),
       });
 
-      // UNITS REDUCTION FIX: Match by ID or Name across products list
+      // 2. Send Email via EmailJS
+      try {
+        const emailParams = {
+          order_id: orderId,
+          customer_name: name,
+          customer_phone: phone,
+          customer_city: city,
+          customer_address: address,
+          order_total: formattedTotal,
+          order_items: activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')
+        };
+
+        await emailjs.send(
+          'service_uyvkdps',
+          'template_alo2sbs',
+          emailParams,
+          '3yWFiHp6MIEaS24Qj'
+        );
+      } catch (emailErr) {
+        console.error("EmailJS sending failed:", emailErr);
+      }
+
+      // 3. Deduct Stock Units
       if (directProduct && productsList.length > 0) {
         const foundProd = productsList.find((p: any) => 
           (directProduct.id && p.id === directProduct.id) || 
