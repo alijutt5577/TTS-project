@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, CheckCircle, ShoppingBag } from 'lucide-react';
+import { X, CheckCircle2, ShoppingBag, PartyPopper } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { db } from '../lib/firebase';
@@ -28,6 +28,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
   const [address, setAddress] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [assignedOrderId, setAssignedOrderId] = useState('');
 
   if (!isOpen) return null;
 
@@ -47,6 +48,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
 
     try {
       const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+      setAssignedOrderId(orderId);
       
       const itemDetails = activeItems.map(item => ({
         name: item.name,
@@ -81,7 +83,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-[#FDFBF7] w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl relative border border-stone-200">
         <button
           onClick={onClose}
@@ -96,18 +98,41 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
             <p className="text-xs text-stone-600">We are currently not accepting new orders. Please check back later.</p>
           </div>
         ) : submitted ? (
-          <div className="text-center py-8 space-y-4">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
-            <h3 className="font-serif text-2xl font-semibold uppercase">Order Placed Successfully!</h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Thank you for shopping with TTS. Your order has been registered in our system and our dispatch team will contact you soon.
+          <div className="text-center py-8 space-y-5 animate-fade-in">
+            <div className="w-16 h-16 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <PartyPopper className="w-8 h-8 animate-bounce" />
+            </div>
+            
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-900 bg-amber-100/60 px-3 py-1 rounded-full">
+                Order Confirmed Successfully
+              </span>
+              <h3 className="font-serif text-2xl md:text-3xl font-bold uppercase tracking-wide text-stone-900">
+                Congratulations! 🎉
+              </h3>
+              <p className="text-xs text-stone-600 leading-relaxed px-4">
+                Thank you for shopping with <span className="font-bold text-stone-900">TTS</span>. Your order (<span className="font-mono font-bold text-amber-900">{assignedOrderId}</span>) has been successfully placed and registered in our dispatch system.
+              </p>
+            </div>
+
+            <div className="bg-stone-100 p-4 rounded-xl text-left space-y-1 text-xs text-stone-700 max-w-xs mx-auto border border-stone-200">
+              <p className="font-bold text-[11px] uppercase tracking-wider text-stone-900 mb-1">Shipping Details:</p>
+              <p><span className="text-stone-500">Name:</span> {name}</p>
+              <p><span className="text-stone-500">Phone:</span> {phone}</p>
+              <p><span className="text-stone-500">City:</span> {city}</p>
+              <p><span className="text-stone-500">Total:</span> <span className="font-bold text-amber-900">{formattedTotal} (COD)</span></p>
+            </div>
+
+            <p className="text-[11px] text-stone-500 italic">
+              Our customer support team will call you shortly for order verification.
             </p>
+
             <button
               onClick={() => {
                 setSubmitted(false);
                 onClose();
               }}
-              className="mt-4 bg-[#3D2B1F] text-white text-xs font-semibold uppercase tracking-widest px-6 py-3 rounded cursor-pointer"
+              className="mt-2 bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs font-semibold uppercase tracking-widest px-8 py-3.5 rounded-lg shadow-md cursor-pointer transition"
             >
               Continue Shopping
             </button>
@@ -119,7 +144,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
               <p className="text-xs text-stone-500 mt-1">Fill in your shipping address for Cash on Delivery</p>
             </div>
 
-            <div className="bg-stone-100 p-4 rounded-xl space-y-2 max-h-40 overflow-y-auto">
+            <div className="bg-stone-100 p-4 rounded-xl space-y-2 max-h-40 overflow-y-auto border border-stone-200">
               <p className="text-[10px] uppercase font-bold text-stone-500 tracking-wider">Order Summary</p>
               {activeItems.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-xs text-stone-800">
