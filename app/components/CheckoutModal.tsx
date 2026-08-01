@@ -4,11 +4,24 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { X, CheckCircle, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
-export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface CheckoutModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  directProduct?: {
+    name: string;
+    price: string;
+    quantity: number;
+    image?: string;
+  };
+}
+
+export default function CheckoutModal({ isOpen, onClose, directProduct }: CheckoutModalProps) {
   const { cart, clearCart } = useCart();
+  const { storeStatus } = useSettings();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
@@ -18,7 +31,9 @@ export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; on
 
   if (!isOpen) return null;
 
-  const totalPrice = cart.reduce((sum, item) => sum + (parseInt(item.price.replace(/[^0-9]/g, ''), 10) || 0) * item.quantity, 0);
+  const activeItems = directProduct ? [directProduct] : cart;
+
+  const totalPrice = activeItems.reduce((sum, item) => sum + (parseInt(item.price.replace(/[^0-9]/g, ''), 10) || 0) * item.quantity, 0);
   const formattedTotal = `PKR ${totalPrice.toLocaleString()}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,15 +48,13 @@ export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; on
     try {
       const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
       
-      const itemDetails = cart.map(item => ({
-        id: item.id,
+      const itemDetails = activeItems.map(item => ({
         name: item.name,
         price: item.price,
         quantity: item.quantity,
         image: item.image || '/poster1.jpg'
       }));
 
-      // SAVE ORDER TO FIRESTORE DATABASE
       await addDoc(collection(db, 'orders'), {
         id: orderId,
         customer: name,
@@ -49,13 +62,15 @@ export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; on
         city: city,
         address: address,
         total: formattedTotal,
-        items: `${cart.length} item(s)`,
+        items: `${activeItems.length} item(s)`,
         itemDetails: itemDetails,
         status: 'New',
         date: new Date().toLocaleString(),
       });
 
-      clearCart();
+      if (!directProduct) {
+        clearCart();
+      }
       setSubmitted(true);
     } catch (error) {
       console.error("Error saving order to Firestore:", error);
@@ -75,7 +90,12 @@ export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; on
           <X className="w-6 h-6" />
         </button>
 
-        {submitted ? (
+        {!storeStatus ? (
+          <div className="text-center py-8 space-y-4">
+            <h3 className="font-serif text-xl font-semibold text-red-600 uppercase">Store is Temporarily Closed</h3>
+            <p className="text-xs text-stone-600">We are currently not accepting new orders. Please check back later.</p>
+          </div>
+        ) : submitted ? (
           <div className="text-center py-8 space-y-4">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
             <h3 className="font-serif text-2xl font-semibold uppercase">Order Placed Successfully!</h3>
@@ -101,7 +121,7 @@ export default function CheckoutModal({ isOpen, onClose }: { isOpen: boolean; on
 
             <div className="bg-stone-100 p-4 rounded-xl space-y-2 max-h-40 overflow-y-auto">
               <p className="text-[10px] uppercase font-bold text-stone-500 tracking-wider">Order Summary</p>
-              {cart.map((item, idx) => (
+              {activeItems.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-xs text-stone-800">
                   <span className="line-clamp-1">{item.name} (x{item.quantity})</span>
                   <span className="font-bold">{item.price}</span>
