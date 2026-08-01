@@ -60,12 +60,20 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
     poster3: string;
   }) => {
     try {
-      await setDoc(doc(db, 'settings', 'store_banners'), data, { merge: true });
+      const payload = {
+        heroBanners: data.heroBanners,
+        mobileHeroBanners: data.mobileHeroBanners,
+        poster1: data.poster1 || '/poster1.jpg',
+        poster2: data.poster2 || '/poster2.jpg',
+        poster3: data.poster3 || '/poster3.jpg',
+      };
+
+      await setDoc(doc(db, 'settings', 'store_banners'), payload, { merge: true });
       setHeroBanners(data.heroBanners);
       setMobileHeroBanners(data.mobileHeroBanners);
-      setPoster1(data.poster1);
-      setPoster2(data.poster2);
-      setPoster3(data.poster3);
+      setPoster1(payload.poster1);
+      setPoster2(payload.poster2);
+      setPoster3(payload.poster3);
     } catch (error) {
       console.error("Error updating banners in Firestore:", error);
       throw error;
