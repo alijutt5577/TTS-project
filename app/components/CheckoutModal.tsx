@@ -58,10 +58,10 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
     setLoading(true);
 
     try {
-      // SEQUENTIAL REFERENCE NUMBER GENERATOR (REF-001, REF-002...)
+      // SEQUENTIAL ZERO-BASED ORDER ID GENERATOR (0000, 0001, 0002...)
       const ordersSnapshot = await getDocs(collection(db, 'orders'));
-      const nextNum = ordersSnapshot.size + 1;
-      const orderId = `REF-${String(nextNum).padStart(3, '0')}`;
+      const nextNum = ordersSnapshot.size;
+      const orderId = String(nextNum).padStart(4, '0');
       setAssignedOrderId(orderId);
       
       const itemDetails = activeItems.map(item => ({
@@ -107,12 +107,11 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         console.error("EmailJS sending failed:", emailErr);
       }
 
-      // 3. WHATSAPP AUTO MESSAGE REDIRECT / TRIGGER
+      // 3. WHATSAPP AUTO MESSAGE REDIRECT
       if (supportPhone && supportPhone.trim() !== '') {
         const waNumber = supportPhone.replace(/[^0-9]/g, '');
-        const waMessage = `*New Order Received!*%0A*Ref No:* ${orderId}%0A*Customer:* ${name}%0A*Phone:* ${phone}%0A*City:* ${city}%0A*Address:* ${address}%0A*Items:* ${activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')}%0A*Total:* ${formattedTotal}`;
+        const waMessage = `*New Order Received!*%0A*Order No:* ${orderId}%0A*Customer:* ${name}%0A*Phone:* ${phone}%0A*City:* ${city}%0A*Address:* ${address}%0A*Items:* ${activeItems.map(i => `${i.name} (x${i.quantity})`).join(', ')}%0A*Total:* ${formattedTotal}`;
         
-        // Background window to open WhatsApp notification if allowed
         window.open(`https://wa.me/${waNumber}?text=${waMessage}`, '_blank');
       }
 
@@ -196,7 +195,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
                 Congratulations! 🎉
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed px-4">
-                Thank you for shopping with <span className="font-bold text-stone-900">TTS</span>. Your order reference (<span className="font-mono font-bold text-amber-900">{assignedOrderId}</span>) has been successfully placed and registered.
+                Thank you for shopping with <span className="font-bold text-stone-900">TTS</span>. Your order no (<span className="font-mono font-bold text-amber-900">{assignedOrderId}</span>) has been successfully placed.
               </p>
             </div>
 
