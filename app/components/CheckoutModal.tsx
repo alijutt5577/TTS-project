@@ -7,7 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -26,6 +26,7 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
   const { cart, clearCart } = useCart();
   const { storeStatus } = useSettings();
   const productContext = useProducts() as any;
+  const productsList = productContext?.products || [];
   const editProduct = productContext?.editProduct || (() => {});
 
   const [name, setName] = useState('');
@@ -79,32 +80,41 @@ export default function CheckoutModal({ isOpen, onClose, directProduct }: Checko
         date: new Date().toLocaleString(),
       });
 
-      if (directProduct && directProduct.id && productContext?.products) {
-        const foundProd = productContext.products.find((p: any) => p.id === directProduct.id);
-        if (foundProd) {
+      // UNITS REDUCTION FIX: Match by ID or Name across products list
+      if (directProduct && productsList.length > 0) {
+        const foundProd = productsList.find((p: any) => 
+          (directProduct.id && p.id === directProduct.id) || 
+          p.name.toLowerCase() === directProduct.name.toLowerCase()
+        );
+
+        if (foundProd && foundProd.id) {
           const currentUnits = parseInt(foundProd.units ?? 10, 10);
           const orderedQty = directProduct.quantity || 1;
           const newUnits = Math.max(0, currentUnits - orderedQty);
 
-          const updatedProdData = {
-            ...foundProd,
-            units: newUnits,
-          };
-          editProduct(updatedProdData);
+          editProduct({ ...foundProd, units: newUnits });
+
+          await updateDoc(doc(db, 'products', foundProd.id), {
+            units: newUnits
+          });
         }
-      } else if (!directProduct && cart.length > 0 && productContext?.products) {
+      } else if (!directProduct && cart.length > 0 && productsList.length > 0) {
         for (const cartItem of cart) {
-          const foundProd = productContext.products.find((p: any) => p.id === cartItem.id);
-          if (foundProd) {
+          const foundProd = productsList.find((p: any) => 
+            (cartItem.id && p.id === cartItem.id) || 
+            p.name.toLowerCase() === cartItem.name.toLowerCase()
+          );
+
+          if (foundProd && foundProd.id) {
             const currentUnits = parseInt(foundProd.units ?? 10, 10);
             const orderedQty = cartItem.quantity || 1;
             const newUnits = Math.max(0, currentUnits - orderedQty);
 
-            const updatedProdData = {
-              ...foundProd,
-              units: newUnits,
-            };
-            editProduct(updatedProdData);
+            editProduct({ ...foundProd, units: newUnits });
+
+            await updateDoc(doc(db, 'products', foundProd.id), {
+              units: newUnits
+            });
           }
         }
       }
