@@ -29,7 +29,7 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   const [poster3, setPoster3] = useState('/poster3.jpg');
 
   useEffect(() => {
-    const fetchBanners = async () => {
+    const fetchBannersAndPosters = async () => {
       try {
         const bannerDoc = await getDoc(doc(db, 'settings', 'store_banners'));
         if (bannerDoc.exists()) {
@@ -40,17 +40,21 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           if (data.mobileHeroBanners && Array.isArray(data.mobileHeroBanners) && data.mobileHeroBanners.length > 0) {
             setMobileHeroBanners(data.mobileHeroBanners);
           }
-          // Fallback to default local posters if database fields are empty
-          if (data.poster1 && data.poster1.trim() !== '') setPoster1(data.poster1);
-          if (data.poster2 && data.poster2.trim() !== '') setPoster2(data.poster2);
-          if (data.poster3 && data.poster3.trim() !== '') setPoster3(data.poster3);
+        }
+
+        const posterDoc = await getDoc(doc(db, 'settings', 'store_posters'));
+        if (posterDoc.exists()) {
+          const pData = posterDoc.data();
+          if (pData.poster1 && pData.poster1.trim() !== '') setPoster1(pData.poster1);
+          if (pData.poster2 && pData.poster2.trim() !== '') setPoster2(pData.poster2);
+          if (pData.poster3 && pData.poster3.trim() !== '') setPoster3(pData.poster3);
         }
       } catch (error) {
-        console.error("Error fetching banners from Firestore:", error);
+        console.error("Error fetching banners/posters:", error);
       }
     };
 
-    fetchBanners();
+    fetchBannersAndPosters();
   }, []);
 
   const updateBanners = async (data: {
@@ -61,22 +65,24 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
     poster3: string;
   }) => {
     try {
-      const payload = {
+      await setDoc(doc(db, 'settings', 'store_banners'), {
         heroBanners: data.heroBanners,
-        mobileHeroBanners: data.mobileHeroBanners,
+        mobileHeroBanners: data.mobileHeroBanners
+      }, { merge: true });
+
+      await setDoc(doc(db, 'settings', 'store_posters'), {
         poster1: data.poster1 || '/poster1.jpg',
         poster2: data.poster2 || '/poster2.jpg',
         poster3: data.poster3 || '/poster3.jpg',
-      };
+      }, { merge: true });
 
-      await setDoc(doc(db, 'settings', 'store_banners'), payload, { merge: true });
       setHeroBanners(data.heroBanners);
       setMobileHeroBanners(data.mobileHeroBanners);
-      setPoster1(payload.poster1);
-      setPoster2(payload.poster2);
-      setPoster3(payload.poster3);
+      setPoster1(data.poster1 || '/poster1.jpg');
+      setPoster2(data.poster2 || '/poster2.jpg');
+      setPoster3(data.poster3 || '/poster3.jpg');
     } catch (error) {
-      console.error("Error updating banners in Firestore:", error);
+      console.error("Error updating banners/posters:", error);
       throw error;
     }
   };
