@@ -31,7 +31,12 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const fetchBannersAndPosters = async () => {
       try {
-        const bannerDoc = await getDoc(doc(db, 'settings', 'store_banners'));
+        // PARALLEL FETCHING: Both documents fetch simultaneously for instant loading
+        const [bannerDoc, posterDoc] = await Promise.all([
+          getDoc(doc(db, 'settings', 'store_banners')),
+          getDoc(doc(db, 'settings', 'store_posters'))
+        ]);
+
         if (bannerDoc.exists()) {
           const data = bannerDoc.data();
           if (data.heroBanners && Array.isArray(data.heroBanners) && data.heroBanners.length > 0) {
@@ -42,7 +47,6 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        const posterDoc = await getDoc(doc(db, 'settings', 'store_posters'));
         if (posterDoc.exists()) {
           const pData = posterDoc.data();
           if (pData['ladies collection'] && pData['ladies collection'].trim() !== '') {
@@ -71,18 +75,18 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
     newArrivals: string;
   }) => {
     try {
-      await setDoc(doc(db, 'settings', 'store_banners'), {
-        heroBanners: data.heroBanners,
-        mobileHeroBanners: data.mobileHeroBanners
-      }, { merge: true });
+      await Promise.all([
+        setDoc(doc(db, 'settings', 'store_banners'), {
+          heroBanners: data.heroBanners,
+          mobileHeroBanners: data.mobileHeroBanners
+        }, { merge: true }),
 
-      const posterPayload = {
-        'ladies collection': data.ladiesCollection || '',
-        'kids festive collection': data.kidsFestiveCollection || '',
-        'new arrivals': data.newArrivals || '',
-      };
-
-      await setDoc(doc(db, 'settings', 'store_posters'), posterPayload, { merge: true });
+        setDoc(doc(db, 'settings', 'store_posters'), {
+          'ladies collection': data.ladiesCollection || '',
+          'kids festive collection': data.kidsFestiveCollection || '',
+          'new arrivals': data.newArrivals || '',
+        }, { merge: true })
+      ]);
 
       setHeroBanners(data.heroBanners);
       setMobileHeroBanners(data.mobileHeroBanners);
