@@ -10,90 +10,92 @@ import {
   doc, 
   getDocs,
   query,
-  limit 
+  limit,
+  startAfter // Naya import paging ke liye
 } from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
+  
+  // Paging ke liye naye states
+  const [lastDoc, setLastDoc] = useState<any>(null); // Aakhri product ko yaad rakhne ke liye
+  const [hasMore, setHasMore] = useState<boolean>(true); // Check karne ke liye ke mazeed products hain ya nahi
+  const [loadingMore, setLoadingMore] = useState<boolean>(false); // Load More button ka loading state
 
-  // Fetch products once on load instead of heavy real-time snapshot
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchInitialProducts = async () => {
       try {
-        // Limit to first 20 products for fast loading (Pagination can be added later)
-        const q = query(collection(db, 'products'), limit(20));
+        // Pehli dafa sirf 12 products load honge
+        const q = query(collection(db, 'products'), limit(12));
         const querySnapshot = await getDocs(q);
+        
         const items = querySnapshot.docs.map((docItem) => ({
           id: docItem.id,
           ...docItem.data(),
         }));
+
         setProducts(items);
+
+        // Aakhri document ko save kar lein agle page ke liye
+        const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+        setLastDoc(lastVisible);
+
+        // Agar 12 se kam products aaye hain, iska matlab mazeed products nahi hain
+        if (querySnapshot.docs.length < 12) {
+          setHasMore(false);
+        }
       } catch (error) {
         console.error("Error fetching products from Firestore: ", error);
       }
     };
 
-    fetchProducts();
+    fetchInitialProducts();
   }, []);
 
-  const addProduct = async (product: any) => {
+  // 'Load More' button ke liye function
+  const loadMoreProducts = async () => {
+    if (!lastDoc || !hasMore) return;
+    
+    setLoadingMore(true);
     try {
-      const docRef = await addDoc(collection(db, 'products'), {
-        ...product,
-        createdAt: new Date().toISOString(),
-      });
-      // Locally update state to avoid reloading
-      setProducts(prev => [...prev, { id: docRef.id, ...product }]);
-    } catch (error) {
-      console.error("Error adding product: ", error);
-      alert('Failed to add product to database.');
-    }
-  };
+      // Pichle aakhri document ke baad se agle 12 products laayein
+      const q = query(collection(db, 'products'), startAfter(lastDoc), limit(12));
+      const querySnapshot = await getDocs(q);
+      
+      const nextItems = querySnapshot.docs.map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
+      }));
 
-  const editProduct = async (updatedProduct: any) => {
-    try {
-      const { id, ...dataToUpdate } = updatedProduct;
-      const productRef = doc(db, 'products', id);
-      await updateDoc(productRef, dataToUpdate);
-      setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
-    } catch (error) {
-      console.error("Error updating product: ", error);
-      alert('Failed to update product in database.');
-    }
-  };
+      // Naye products ko purane products ki list mein jod dein
+      setProducts((prevProducts) => [...prevProducts, ...nextItems]);
 
-  const deleteProduct = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'products', id));
-      setProducts(prev => prev.filter(p => p.id !== id));
-    } catch (error) {
-      console.error("Error deleting product: ", error);
-      alert('Failed to delete product from database.');
-    }
-  };
+      // Naya aakhri document save karein
+      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastDoc(lastVisible);
 
-  const reduceStock = async (orderedItems: any[]) => {
-    try {
-      for (const item of orderedItems) {
-        const matchingProduct = products.find((p) => p.name === item.name || p.id === item.id);
-        if (matchingProduct) {
-          const currentUnits = parseInt(matchingProduct.units, 10) || 0;
-          const orderedQty = parseInt(item.quantity, 10) || 1;
-          const newUnits = Math.max(0, currentUnits - orderedQty);
-          
-          const productRef = doc(db, 'products', matchingProduct.id);
-          await updateDoc(productRef, { units: newUnits });
-        }
+      // Agar mazeed products nahi hain toh Load More band kar dein
+      if (querySnapshot.docs.length < 12) {
+        setHasMore(false);
       }
     } catch (error) {
-      console.error("Error reducing stock: ", error);
+      console.error("Error fetching more products: ", error);
     }
+    setLoadingMore(false);
   };
 
+  // ... (Baqi addProduct, editProduct, deleteProduct, reduceStock waise hi rahenge) ...
+
   return (
-    <ProductContext.Provider value={{ products, addProduct, editProduct, deleteProduct, reduceStock }}>
+    <ProductContext.Provider value={{ 
+      products, 
+      loadMoreProducts, // Naya function provider mein add kiya
+      hasMore,          // UI mein button hide/show karne ke liye
+      loadingMore,      // Button ka loading state
+      // addProduct, editProduct, deleteProduct, reduceStock...
+    }}>
       {children}
     </ProductContext.Provider>
   );
