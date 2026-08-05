@@ -537,7 +537,7 @@ export default function Navbar() {
           )}
           <button
             onClick={() => setIsCartOpen(false)}
-            className="w-full bg-stone-200 hover:bg-stone-300 text-stone-900 text-xs font-semibold tracking-widest uppercase py-3.5 transition duration-300 rounded-sm cursor-pointer shadow-sm"
+            className="w-full bg-stone-200 hover:bg-stone-300 text-stone-900 text-xs font-semibold tracking-widest uppercase py-3.5 transition duration-300 rounded-sm shadow-sm"
           >
             Continue Shopping
           </button>
