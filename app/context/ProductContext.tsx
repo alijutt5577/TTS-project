@@ -9,16 +9,14 @@ import {
   deleteDoc, 
   doc, 
   getDocs,
-  query,
-  orderBy,
-  startAfter 
+  query 
 } from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
-  const [visibleCount, setVisibleCount] = useState<number>(8); // Shuru mein 8 dikhane ke liye
+  const [visibleCount, setVisibleCount] = useState<number>(8);
 
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -41,7 +39,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   const loadMoreProducts = () => {
-    setVisibleCount((prev) => prev + 8); // Har click par mazeed 8 products show honge
+    setVisibleCount((prev) => prev + 8);
   };
 
   const addProduct = async (product: any) => {

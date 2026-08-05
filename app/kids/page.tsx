@@ -8,14 +8,17 @@ import { useProducts } from '../context/ProductContext';
 export default function KidsPage() {
   const productContext = useProducts() as any;
   const products = productContext?.products || [];
+  const visibleCount = productContext?.visibleCount || 8;
   const loadMoreProducts = productContext?.loadMoreProducts;
-  const hasMore = productContext?.hasMore;
   const loadingMore = productContext?.loadingMore;
 
-  const kidsProducts = products.filter((p: any) => {
+  const filteredKids = products.filter((p: any) => {
     const cat = p.category ? p.category.toLowerCase() : '';
     return cat.includes('kids');
   });
+
+  const kidsProducts = filteredKids.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredKids.length;
 
   return (
     <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-32 pb-16 px-4 sm:px-6 font-sans">

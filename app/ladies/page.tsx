@@ -11,15 +11,15 @@ import { Heart, ShoppingBag } from 'lucide-react';
 export default function LadiesPage() {
   const productContext = useProducts() as any;
   const products = productContext?.products || [];
+  const visibleCount = productContext?.visibleCount || 8;
   const loadMoreProducts = productContext?.loadMoreProducts;
-  const hasMore = productContext?.hasMore;
   const loadingMore = productContext?.loadingMore;
 
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   // Filter to support multi-category strings containing 'ladies', 'lawn', or 'stitched'
-  const ladiesProducts = products.filter((p: any) => {
+  const filteredLadies = products.filter((p: any) => {
     const cat = p.category ? p.category.toLowerCase() : '';
     return (
       cat.includes('ladies') ||
@@ -27,6 +27,9 @@ export default function LadiesPage() {
       cat.includes('stitched')
     );
   });
+
+  const ladiesProducts = filteredLadies.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredLadies.length;
 
   return (
     <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-32 pb-16 px-4 sm:px-6 font-sans">

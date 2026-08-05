@@ -14,9 +14,8 @@ export default function Home() {
 
   const productContext = useProducts() as any;
   const products = productContext?.products || [];
+  const visibleCount = productContext?.visibleCount || 8;
   const loadMoreProducts = productContext?.loadMoreProducts;
-  const hasMore = productContext?.hasMore;
-  const loadingMore = productContext?.loadingMore;
 
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -56,10 +55,13 @@ export default function Home() {
     return <div className="min-h-screen bg-[#FDFBF7]" />;
   }
 
-  const bestSellerProducts = products.filter((product: any) => {
+  const filteredBestSellers = products.filter((product: any) => {
     const cat = product.category ? product.category.toLowerCase() : '';
     return cat.includes('best sellers');
   });
+
+  const bestSellerProducts = filteredBestSellers.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredBestSellers.length;
 
   const hasHeroBanners = heroBanners.length > 0 || mobileHeroBanners.length > 0;
 
@@ -264,7 +266,6 @@ export default function Home() {
           </p>
         ) : (
           <>
-            {/* Yahan grid-cols-2 kar diya hai taake mobile par double products show hon */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8">
               {bestSellerProducts.map((product: any) => {
                 const isWishlisted = isInWishlist(product.id);
@@ -343,10 +344,9 @@ export default function Home() {
               <div className="flex justify-center mt-12">
                 <button
                   onClick={loadMoreProducts}
-                  disabled={loadingMore}
-                  className="px-8 py-3 bg-amber-900 text-white font-semibold uppercase tracking-widest text-xs rounded-full hover:bg-stone-900 transition disabled:opacity-50 cursor-pointer shadow-md"
+                  className="px-8 py-3 bg-amber-900 text-white font-semibold uppercase tracking-widest text-xs rounded-full hover:bg-stone-900 transition cursor-pointer shadow-md"
                 >
-                  {loadingMore ? 'Loading...' : 'Load More Products'}
+                  Load More Products
                 </button>
               </div>
             )}
