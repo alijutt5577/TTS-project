@@ -8,35 +8,87 @@ import {
   updateDoc, 
   deleteDoc, 
   doc, 
-  onSnapshot 
+  getDocs,
+  query,
+  limit,
+  startAfter 
 } from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  // Real-time synchronization taake products foran show hon
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const items = snapshot.docs.map((docItem) => ({
+    const fetchInitialProducts = async () => {
+      try {
+        // Pehli dafa sirf 8 products load honge
+        const q = query(collection(db, 'products'), limit(8));
+        const querySnapshot = await getDocs(q);
+        
+        const items = querySnapshot.docs.map((docItem) => ({
+          id: docItem.id,
+          ...docItem.data(),
+        }));
+
+        setProducts(items);
+
+        const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+        setLastDoc(lastVisible);
+
+        if (querySnapshot.docs.length < 8) {
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error("Error fetching products from Firestore: ", error);
+      }
+    };
+
+    fetchInitialProducts();
+  }, []);
+
+  const loadMoreProducts = async () => {
+    if (!lastDoc || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      // Agle 8 products load karne ke liye
+      const q = query(collection(db, 'products'), startAfter(lastDoc), limit(8));
+      const querySnapshot = await getDocs(q);
+      
+      const nextItems = querySnapshot.docs.map((docItem) => ({
         id: docItem.id,
         ...docItem.data(),
       }));
-      setProducts(items);
-    }, (error) => {
-      console.error("Error fetching products from Firestore: ", error);
-    });
 
-    return () => unsubscribe();
-  }, []);
+      setProducts((prevProducts) => [...prevProducts, ...nextItems]);
+
+      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastDoc(lastVisible);
+
+      if (querySnapshot.docs.length < 8) {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error fetching more products: ", error);
+    }
+    setLoadingMore(false);
+  };
 
   const addProduct = async (product: any) => {
     try {
-      await addDoc(collection(db, 'products'), {
+      const docRef = await addDoc(collection(db, 'products'), {
         ...product,
         createdAt: new Date().toISOString(),
       });
+      
+      setProducts((prevProducts) => [
+        { id: docRef.id, ...product },
+        ...prevProducts
+      ]);
     } catch (error) {
       console.error("Error adding product: ", error);
       alert('Failed to add product to database.');
@@ -48,6 +100,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
       const { id, ...dataToUpdate } = updatedProduct;
       const productRef = doc(db, 'products', id);
       await updateDoc(productRef, dataToUpdate);
+      setProducts((prev) => prev.map(p => p.id === id ? updatedProduct : p));
     } catch (error) {
       console.error("Error updating product: ", error);
       alert('Failed to update product in database.');
@@ -57,6 +110,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const deleteProduct = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'products', id));
+      setProducts((prev) => prev.filter(p => p.id !== id));
     } catch (error) {
       console.error("Error deleting product: ", error);
       alert('Failed to delete product from database.');
@@ -82,7 +136,16 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, editProduct, deleteProduct, reduceStock }}>
+    <ProductContext.Provider value={{ 
+      products, 
+      loadMoreProducts, 
+      hasMore, 
+      loadingMore, 
+      addProduct, 
+      editProduct, 
+      deleteProduct, 
+      reduceStock 
+    }}>
       {children}
     </ProductContext.Provider>
   );
