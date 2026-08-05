@@ -10,7 +10,7 @@ import {
   doc, 
   getDocs,
   query,
-  limit,
+  orderBy,
   startAfter 
 } from 'firebase/firestore';
 
@@ -18,15 +18,12 @@ const ProductContext = createContext<any>(null);
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
-  const [lastDoc, setLastDoc] = useState<any>(null);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [visibleCount, setVisibleCount] = useState<number>(8); // Shuru mein 8 dikhane ke liye
 
   useEffect(() => {
-    const fetchInitialProducts = async () => {
+    const fetchAllProducts = async () => {
       try {
-        // Pehli dafa sirf 8 products load honge
-        const q = query(collection(db, 'products'), limit(8));
+        const q = query(collection(db, 'products'));
         const querySnapshot = await getDocs(q);
         
         const items = querySnapshot.docs.map((docItem) => ({
@@ -35,47 +32,16 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
         }));
 
         setProducts(items);
-
-        const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-        setLastDoc(lastVisible);
-
-        if (querySnapshot.docs.length < 8) {
-          setHasMore(false);
-        }
       } catch (error) {
         console.error("Error fetching products from Firestore: ", error);
       }
     };
 
-    fetchInitialProducts();
+    fetchAllProducts();
   }, []);
 
-  const loadMoreProducts = async () => {
-    if (!lastDoc || !hasMore) return;
-    
-    setLoadingMore(true);
-    try {
-      // Agle 8 products load karne ke liye
-      const q = query(collection(db, 'products'), startAfter(lastDoc), limit(8));
-      const querySnapshot = await getDocs(q);
-      
-      const nextItems = querySnapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      }));
-
-      setProducts((prevProducts) => [...prevProducts, ...nextItems]);
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-      setLastDoc(lastVisible);
-
-      if (querySnapshot.docs.length < 8) {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error("Error fetching more products: ", error);
-    }
-    setLoadingMore(false);
+  const loadMoreProducts = () => {
+    setVisibleCount((prev) => prev + 8); // Har click par mazeed 8 products show honge
   };
 
   const addProduct = async (product: any) => {
@@ -138,9 +104,8 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   return (
     <ProductContext.Provider value={{ 
       products, 
+      visibleCount, 
       loadMoreProducts, 
-      hasMore, 
-      loadingMore, 
       addProduct, 
       editProduct, 
       deleteProduct, 
