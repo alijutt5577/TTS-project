@@ -978,7 +978,7 @@ export default function AdminDashboard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. 03260154445"
+                  placeholder="e.g. 03210000000"
                   value={supportPhone}
                   onChange={(e) => setSupportPhone(e.target.value)}
                   className="w-full border border-stone-300 rounded px-3 py-2 text-xs focus:outline-none focus:border-stone-800"
