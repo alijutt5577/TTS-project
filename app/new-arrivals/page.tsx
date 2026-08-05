@@ -18,7 +18,7 @@ export default function NewArrivalsPage() {
   });
 
   return (
-    <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-32 pb-16 px-6 font-sans">
+    <div className="bg-[#FDFBF7] text-[#2C2623] min-h-screen pt-32 pb-16 px-4 sm:px-6 font-sans">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <p className="text-[10px] uppercase tracking-[0.3em] text-amber-900 font-semibold mb-2">
@@ -36,19 +36,19 @@ export default function NewArrivalsPage() {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8">
               {newArrivals.map((product: any) => {
                 const isSoldOut = product.units === 0 || product.units === '0';
                 const productImage = product.image || (product.images && product.images[0]) || '/poster1.jpg';
 
                 return (
                   <Link key={product.id} href={`/product/${product.id}`} className="group block">
-                    <div className="relative h-[380px] w-full rounded-xl overflow-hidden bg-stone-200 mb-4 shadow-sm">
+                    <div className="relative h-[260px] sm:h-[380px] w-full rounded-xl sm:rounded-2xl overflow-hidden bg-stone-200 mb-4 shadow-sm">
                       <Image
                         src={productImage}
                         alt={product.name}
                         fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
                         className={`object-cover object-top group-hover:scale-105 transition duration-500 ${
                           isSoldOut ? 'opacity-80' : ''
                         }`}
@@ -56,19 +56,19 @@ export default function NewArrivalsPage() {
 
                       {/* SOLD OUT BADGE */}
                       {isSoldOut && (
-                        <span className="absolute top-3 left-3 bg-red-800 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-md z-10">
+                        <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-800 text-white text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 sm:px-2.5 sm:py-1 rounded shadow-md z-10">
                           Sold Out
                         </span>
                       )}
                     </div>
 
-                    <p className="text-[10px] font-bold text-amber-900 uppercase tracking-widest">
+                    <p className="text-[9px] sm:text-[10px] font-bold text-amber-900 uppercase tracking-widest pl-1">
                       {product.category}
                     </p>
-                    <h3 className="font-serif text-sm font-semibold text-stone-900 mt-1 group-hover:text-amber-800 transition line-clamp-1">
+                    <h3 className="font-serif text-xs sm:text-sm font-semibold text-stone-900 mt-1 pl-1 group-hover:text-amber-800 transition line-clamp-1">
                       {product.name}
                     </h3>
-                    <p className="text-xs font-bold text-stone-800 mt-1">{product.price}</p>
+                    <p className="text-[11px] sm:text-xs font-bold text-stone-800 mt-1 pl-1">{product.price}</p>
                   </Link>
                 );
               })}
