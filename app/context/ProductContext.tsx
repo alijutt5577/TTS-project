@@ -11,23 +11,20 @@ import {
   getDocs,
   query,
   limit,
-  startAfter // Naya import paging ke liye
+  startAfter 
 } from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
 
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
-  
-  // Paging ke liye naye states
-  const [lastDoc, setLastDoc] = useState<any>(null); // Aakhri product ko yaad rakhne ke liye
-  const [hasMore, setHasMore] = useState<boolean>(true); // Check karne ke liye ke mazeed products hain ya nahi
-  const [loadingMore, setLoadingMore] = useState<boolean>(false); // Load More button ka loading state
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchInitialProducts = async () => {
       try {
-        // Pehli dafa sirf 12 products load honge
         const q = query(collection(db, 'products'), limit(12));
         const querySnapshot = await getDocs(q);
         
@@ -38,11 +35,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 
         setProducts(items);
 
-        // Aakhri document ko save kar lein agle page ke liye
         const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
         setLastDoc(lastVisible);
 
-        // Agar 12 se kam products aaye hain, iska matlab mazeed products nahi hain
         if (querySnapshot.docs.length < 12) {
           setHasMore(false);
         }
@@ -54,13 +49,11 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
     fetchInitialProducts();
   }, []);
 
-  // 'Load More' button ke liye function
   const loadMoreProducts = async () => {
     if (!lastDoc || !hasMore) return;
     
     setLoadingMore(true);
     try {
-      // Pichle aakhri document ke baad se agle 12 products laayein
       const q = query(collection(db, 'products'), startAfter(lastDoc), limit(12));
       const querySnapshot = await getDocs(q);
       
@@ -69,14 +62,11 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
         ...docItem.data(),
       }));
 
-      // Naye products ko purane products ki list mein jod dein
       setProducts((prevProducts) => [...prevProducts, ...nextItems]);
 
-      // Naya aakhri document save karein
       const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
       setLastDoc(lastVisible);
 
-      // Agar mazeed products nahi hain toh Load More band kar dein
       if (querySnapshot.docs.length < 12) {
         setHasMore(false);
       }
@@ -86,15 +76,74 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
     setLoadingMore(false);
   };
 
-  // ... (Baqi addProduct, editProduct, deleteProduct, reduceStock waise hi rahenge) ...
+  const addProduct = async (product: any) => {
+    try {
+      const docRef = await addDoc(collection(db, 'products'), {
+        ...product,
+        createdAt: new Date().toISOString(),
+      });
+      
+      // Foran state mein add karein taake admin panel aur home par nazar aaye
+      setProducts((prevProducts) => [
+        { id: docRef.id, ...product },
+        ...prevProducts
+      ]);
+    } catch (error) {
+      console.error("Error adding product: ", error);
+      alert('Failed to add product to database.');
+    }
+  };
+
+  const editProduct = async (updatedProduct: any) => {
+    try {
+      const { id, ...dataToUpdate } = updatedProduct;
+      const productRef = doc(db, 'products', id);
+      await updateDoc(productRef, dataToUpdate);
+      setProducts((prev) => prev.map(p => p.id === id ? updatedProduct : p));
+    } catch (error) {
+      console.error("Error updating product: ", error);
+      alert('Failed to update product in database.');
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      setProducts((prev) => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error deleting product: ", error);
+      alert('Failed to delete product from database.');
+    }
+  };
+
+  const reduceStock = async (orderedItems: any[]) => {
+    try {
+      for (const item of orderedItems) {
+        const matchingProduct = products.find((p) => p.name === item.name || p.id === item.id);
+        if (matchingProduct) {
+          const currentUnits = parseInt(matchingProduct.units, 10) || 0;
+          const orderedQty = parseInt(item.quantity, 10) || 1;
+          const newUnits = Math.max(0, currentUnits - orderedQty);
+          
+          const productRef = doc(db, 'products', matchingProduct.id);
+          await updateDoc(productRef, { units: newUnits });
+        }
+      }
+    } catch (error) {
+      console.error("Error reducing stock: ", error);
+    }
+  };
 
   return (
     <ProductContext.Provider value={{ 
       products, 
-      loadMoreProducts, // Naya function provider mein add kiya
-      hasMore,          // UI mein button hide/show karne ke liye
-      loadingMore,      // Button ka loading state
-      // addProduct, editProduct, deleteProduct, reduceStock...
+      loadMoreProducts, 
+      hasMore, 
+      loadingMore, 
+      addProduct, 
+      editProduct, 
+      deleteProduct, 
+      reduceStock 
     }}>
       {children}
     </ProductContext.Provider>
