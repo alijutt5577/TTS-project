@@ -6,7 +6,11 @@ import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
 
 export default function NewArrivalsPage() {
-  const { products } = useProducts();
+  const productContext = useProducts() as any;
+  const products = productContext?.products || [];
+  const loadMoreProducts = productContext?.loadMoreProducts;
+  const hasMore = productContext?.hasMore;
+  const loadingMore = productContext?.loadingMore;
 
   const newArrivals = products.filter((p: any) => {
     const cat = p.category ? p.category.toLowerCase() : '';
@@ -31,43 +35,61 @@ export default function NewArrivalsPage() {
             No New Arrival Products
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {newArrivals.map((product: any) => {
-              const isSoldOut = product.units === 0 || product.units === '0';
-              const productImage = product.image || (product.images && product.images[0]) || '/poster1.jpg';
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {newArrivals.map((product: any) => {
+                const isSoldOut = product.units === 0 || product.units === '0';
+                const productImage = product.image || (product.images && product.images[0]) || '/poster1.jpg';
 
-              return (
-                <Link key={product.id} href={`/product/${product.id}`} className="group block">
-                  <div className="relative h-[380px] w-full rounded-xl overflow-hidden bg-stone-200 mb-4 shadow-sm">
-                    <Image
-                      src={productImage}
-                      alt={product.name}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className={`object-cover object-top group-hover:scale-105 transition duration-500 ${
-                        isSoldOut ? 'opacity-80' : ''
-                      }`}
-                    />
+                return (
+                  <Link key={product.id} href={`/product/${product.id}`} className="group block">
+                    <div className="relative h-[380px] w-full rounded-xl overflow-hidden bg-stone-200 mb-4 shadow-sm">
+                      <Image
+                        src={productImage}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className={`object-cover object-top group-hover:scale-105 transition duration-500 ${
+                          isSoldOut ? 'opacity-80' : ''
+                        }`}
+                      />
 
-                    {/* SOLD OUT BADGE */}
-                    {isSoldOut && (
-                      <span className="absolute top-3 left-3 bg-red-800 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-md z-10">
-                        Sold Out
-                      </span>
-                    )}
-                  </div>
+                      {/* SOLD OUT BADGE */}
+                      {isSoldOut && (
+                        <span className="absolute top-3 left-3 bg-red-800 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-md z-10">
+                          Sold Out
+                        </span>
+                      )}
+                    </div>
 
-                  <p className="text-[10px] font-bold text-amber-900 uppercase tracking-widest">
-                    {product.category}
-                  </p>
-                  <h3 className="font-serif text-sm font-semibold text-stone-900 mt-1 group-hover:text-amber-800 transition line-clamp-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-xs font-bold text-stone-800 mt-1">{product.price}</p>
-                </Link>
-              );
-            })}
-          </div>
+                    <p className="text-[10px] font-bold text-amber-900 uppercase tracking-widest">
+                      {product.category}
+                    </p>
+                    <h3 className="font-serif text-sm font-semibold text-stone-900 mt-1 group-hover:text-amber-800 transition line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs font-bold text-stone-800 mt-1">{product.price}</p>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* LOAD MORE BUTTON */}
+            {hasMore && loadMoreProducts && (
+              <div className="flex justify-center mt-12">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    loadMoreProducts();
+                  }}
+                  disabled={loadingMore}
+                  className="px-8 py-3 bg-amber-900 text-white font-semibold uppercase tracking-widest text-xs rounded-full hover:bg-stone-900 transition disabled:opacity-50 cursor-pointer shadow-md"
+                >
+                  {loadingMore ? 'Loading...' : 'Load More Products'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
