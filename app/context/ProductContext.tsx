@@ -8,7 +8,9 @@ import {
   updateDoc, 
   deleteDoc, 
   doc, 
-  onSnapshot 
+  getDocs,
+  query,
+  limit 
 } from 'firebase/firestore';
 
 const ProductContext = createContext<any>(null);
@@ -16,27 +18,34 @@ const ProductContext = createContext<any>(null);
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
   const [products, setProducts] = useState<any[]>([]);
 
-  // Real-time synchronization from Firebase Firestore
+  // Fetch products once on load instead of heavy real-time snapshot
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const items = snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      }));
-      setProducts(items);
-    }, (error) => {
-      console.error("Error fetching products from Firestore: ", error);
-    });
+    const fetchProducts = async () => {
+      try {
+        // Limit to first 20 products for fast loading (Pagination can be added later)
+        const q = query(collection(db, 'products'), limit(20));
+        const querySnapshot = await getDocs(q);
+        const items = querySnapshot.docs.map((docItem) => ({
+          id: docItem.id,
+          ...docItem.data(),
+        }));
+        setProducts(items);
+      } catch (error) {
+        console.error("Error fetching products from Firestore: ", error);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchProducts();
   }, []);
 
   const addProduct = async (product: any) => {
     try {
-      await addDoc(collection(db, 'products'), {
+      const docRef = await addDoc(collection(db, 'products'), {
         ...product,
         createdAt: new Date().toISOString(),
       });
+      // Locally update state to avoid reloading
+      setProducts(prev => [...prev, { id: docRef.id, ...product }]);
     } catch (error) {
       console.error("Error adding product: ", error);
       alert('Failed to add product to database.');
@@ -48,6 +57,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
       const { id, ...dataToUpdate } = updatedProduct;
       const productRef = doc(db, 'products', id);
       await updateDoc(productRef, dataToUpdate);
+      setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
     } catch (error) {
       console.error("Error updating product: ", error);
       alert('Failed to update product in database.');
@@ -57,6 +67,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const deleteProduct = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'products', id));
+      setProducts(prev => prev.filter(p => p.id !== id));
     } catch (error) {
       console.error("Error deleting product: ", error);
       alert('Failed to delete product from database.');
