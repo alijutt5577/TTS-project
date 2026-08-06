@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
 import { useBanners } from '../context/BannerContext';
 import { useSettings } from '../context/SettingsContext';
+import { storage } from '../lib/firebase';
+import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { 
   Plus, Package, ShoppingBag, Trash2, ArrowLeft, Lock, LogOut, 
-  DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare, Menu 
+  DollarSign, TrendingUp, Users, Settings, Megaphone, Upload, Search, Key, Edit3, X, Image as ImageIcon, UserCheck, Headset, MessageSquare, Menu, Loader2
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -153,6 +155,36 @@ export default function AdminDashboard() {
     });
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+
+  const uploadToStorage = async (dataOrFile: string | File, folder = 'banners'): Promise<string> => {
+    if (typeof dataOrFile === 'string') {
+      if (!dataOrFile.startsWith('data:')) {
+        return dataOrFile;
+      }
+      try {
+        const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+        const storageRef = ref(storage, fileName);
+        const snapshot = await uploadString(storageRef, dataOrFile, 'data_url');
+        return await getDownloadURL(snapshot.ref);
+      } catch (err) {
+        console.warn('Firebase Storage upload warning, using compressed fallback:', err);
+        return dataOrFile;
+      }
+    } else {
+      try {
+        const fileExt = dataOrFile.name.split('.').pop() || 'jpg';
+        const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+        const storageRef = ref(storage, fileName);
+        const snapshot = await uploadBytes(storageRef, dataOrFile);
+        return await getDownloadURL(snapshot.ref);
+      } catch (err) {
+        console.warn('Firebase Storage upload warning:', err);
+        return await compressImage(dataOrFile);
+      }
+    }
+  };
+
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     await updateOrderStatus(orderId, newStatus);
   };
@@ -184,42 +216,78 @@ export default function AdminDashboard() {
   };
 
   const handleSaveBanners = async () => {
+    setIsUploading(true);
     try {
+      const finalHeroBanners = await Promise.all(
+        heroBanners.map(b => uploadToStorage(b, 'hero_banners'))
+      );
+      const finalMobileHeroBanners = await Promise.all(
+        mobileHeroBanners.map(b => uploadToStorage(b, 'mobile_hero_banners'))
+      );
+      const finalLadies = await uploadToStorage(ladiesCollection, 'posters');
+      const finalKids = await uploadToStorage(kidsFestiveCollection, 'posters');
+      const finalNewArr = await uploadToStorage(newArrivals, 'posters');
+
       await updateBanners({
-        heroBanners,
-        mobileHeroBanners,
-        ladiesCollection,
-        kidsFestiveCollection,
-        newArrivals
+        heroBanners: finalHeroBanners,
+        mobileHeroBanners: finalMobileHeroBanners,
+        ladiesCollection: finalLadies,
+        kidsFestiveCollection: finalKids,
+        newArrivals: finalNewArr
       });
-      alert('Logo & All Banners updated & saved to Firestore Database LIVE!');
+
+      setHeroBanners(finalHeroBanners);
+      setMobileHeroBanners(finalMobileHeroBanners);
+      setLadiesCollection(finalLadies);
+      setKidsFestiveCollection(finalKids);
+      setNewArrivals(finalNewArr);
+
+      alert('All Banners uploaded to Firebase Storage & URLs saved to Firestore LIVE!');
     } catch (error) {
       console.error("Banner update error:", error);
-      alert('Error updating banners. Please make sure image sizes are reasonable.');
+      alert('Error updating banners. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleMultipleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const compressedBanners: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImage(files[i], 1200, 0.75);
-        compressedBanners.push(compressed);
+      setIsUploading(true);
+      try {
+        const uploadedUrls: string[] = [];
+        for (let i = 0; i < files.length; i++) {
+          const compressed = await compressImage(files[i], 1200, 0.75);
+          const storageUrl = await uploadToStorage(compressed, 'hero_banners');
+          uploadedUrls.push(storageUrl);
+        }
+        setHeroBanners(prev => [...prev, ...uploadedUrls]);
+      } catch (err) {
+        console.error('Failed uploading hero banners:', err);
+      } finally {
+        setIsUploading(false);
       }
-      setHeroBanners(prev => [...prev, ...compressedBanners]);
     }
   };
 
   const handleMultipleMobileHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const compressedBanners: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImage(files[i], 800, 0.72);
-        compressedBanners.push(compressed);
+      setIsUploading(true);
+      try {
+        const uploadedUrls: string[] = [];
+        for (let i = 0; i < files.length; i++) {
+          const compressed = await compressImage(files[i], 800, 0.72);
+          const storageUrl = await uploadToStorage(compressed, 'mobile_hero_banners');
+          uploadedUrls.push(storageUrl);
+        }
+        setMobileHeroBanners(prev => [...prev, ...uploadedUrls]);
+      } catch (err) {
+        console.error('Failed uploading mobile hero banners:', err);
+      } finally {
+        setIsUploading(false);
       }
-      setMobileHeroBanners(prev => [...prev, ...compressedBanners]);
     }
   };
 
@@ -242,8 +310,16 @@ export default function AdminDashboard() {
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, setFunction: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      const compressed = await compressImage(file, 1000, 0.75);
-      setFunction(compressed);
+      setIsUploading(true);
+      try {
+        const compressed = await compressImage(file, 1000, 0.75);
+        const storageUrl = await uploadToStorage(compressed, 'posters');
+        setFunction(storageUrl);
+      } catch (err) {
+        console.error('Failed uploading banner poster:', err);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -957,9 +1033,17 @@ export default function AdminDashboard() {
 
             <button
               onClick={handleSaveBanners}
-              className="bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs uppercase tracking-widest font-semibold py-3.5 px-6 rounded transition shadow cursor-pointer mt-4"
+              disabled={isUploading}
+              className="bg-[#3D2B1F] hover:bg-[#2A1D14] text-white text-xs uppercase tracking-widest font-semibold py-3.5 px-6 rounded transition shadow cursor-pointer mt-4 flex items-center gap-2 disabled:opacity-50"
             >
-              Save Logo & All Banners to Database
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading to Firebase Storage & Saving...
+                </>
+              ) : (
+                'Save Logo & All Banners to Database'
+              )}
             </button>
           </div>
         )}
