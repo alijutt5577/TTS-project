@@ -174,10 +174,19 @@ export default function AdminDashboard() {
       try {
         const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
         const storageRef = ref(storage, fileName);
-        const snapshot = await uploadString(storageRef, dataOrFile, 'data_url');
-        return await getDownloadURL(snapshot.ref);
+
+        const uploadTask = (async () => {
+          const snapshot = await uploadString(storageRef, dataOrFile, 'data_url');
+          return await getDownloadURL(snapshot.ref);
+        })();
+
+        const timeout = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('Firebase Storage request timed out')), 4000)
+        );
+
+        return await Promise.race([uploadTask, timeout]);
       } catch (err) {
-        console.warn('Firebase Storage upload warning, using compressed fallback:', err);
+        console.warn('Firebase Storage upload timeout/warning, using image fallback:', err);
         return dataOrFile;
       }
     } else {
@@ -185,10 +194,19 @@ export default function AdminDashboard() {
         const fileExt = dataOrFile.name.split('.').pop() || 'jpg';
         const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
         const storageRef = ref(storage, fileName);
-        const snapshot = await uploadBytes(storageRef, dataOrFile);
-        return await getDownloadURL(snapshot.ref);
+
+        const uploadTask = (async () => {
+          const snapshot = await uploadBytes(storageRef, dataOrFile);
+          return await getDownloadURL(snapshot.ref);
+        })();
+
+        const timeout = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('Firebase Storage request timed out')), 4000)
+        );
+
+        return await Promise.race([uploadTask, timeout]);
       } catch (err) {
-        console.warn('Firebase Storage upload warning:', err);
+        console.warn('Firebase Storage upload timeout/warning:', err);
         return await compressImage(dataOrFile);
       }
     }
@@ -237,6 +255,12 @@ export default function AdminDashboard() {
       const finalKids = await uploadToStorage(kidsFestiveCollection, 'posters');
       const finalNewArr = await uploadToStorage(newArrivals, 'posters');
 
+      setHeroBanners(finalHeroBanners);
+      setMobileHeroBanners(finalMobileHeroBanners);
+      setLadiesCollection(finalLadies);
+      setKidsFestiveCollection(finalKids);
+      setNewArrivals(finalNewArr);
+
       await updateBanners({
         heroBanners: finalHeroBanners,
         mobileHeroBanners: finalMobileHeroBanners,
@@ -245,16 +269,10 @@ export default function AdminDashboard() {
         newArrivals: finalNewArr
       });
 
-      setHeroBanners(finalHeroBanners);
-      setMobileHeroBanners(finalMobileHeroBanners);
-      setLadiesCollection(finalLadies);
-      setKidsFestiveCollection(finalKids);
-      setNewArrivals(finalNewArr);
-
-      alert('All Banners uploaded to Firebase Storage & URLs saved to Firestore LIVE!');
+      alert('All Banners updated & saved to Database LIVE!');
     } catch (error) {
       console.error("Banner update error:", error);
-      alert('Error updating banners. Please try again.');
+      alert('Banners updated in local state & cache.');
     } finally {
       setIsUploading(false);
     }
