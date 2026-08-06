@@ -103,6 +103,7 @@ export default function AdminDashboard() {
   const [editUnits, setEditUnits] = useState('10');
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editImages, setEditImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (dbHero && dbHero.length > 0) setHeroBanners(dbHero);
@@ -164,8 +165,6 @@ export default function AdminDashboard() {
       reader.readAsDataURL(file);
     });
   };
-
-  const [isUploading, setIsUploading] = useState(false);
 
   const uploadToStorage = async (dataOrFile: string | File, folder = 'banners'): Promise<string> => {
     if (typeof dataOrFile === 'string') {
