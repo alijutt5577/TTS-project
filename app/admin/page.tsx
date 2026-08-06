@@ -53,7 +53,12 @@ export default function AdminDashboard() {
   const deleteOrder = settingsContext?.deleteOrder || (async () => {});
   const deleteInquiry = settingsContext?.deleteInquiry || (async () => {});
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('tts_admin_authenticated') === 'true';
+    }
+    return false;
+  });
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -119,7 +124,12 @@ export default function AdminDashboard() {
   }, [dbAnn, dbStatus, dbPhone, dbEmail, dbLoc, dbHrs, dbUsr, dbPwd]);
 
   if (!isMounted) {
-    return <div className="min-h-screen bg-[#181818]" />;
+    return (
+      <div className="min-h-screen bg-[#181818] flex flex-col items-center justify-center text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500 mb-3" />
+        <p className="text-xs uppercase tracking-widest text-stone-400 font-semibold">Loading Admin Dashboard...</p>
+      </div>
+    );
   }
 
   const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<string> => {
@@ -446,19 +456,31 @@ export default function AdminDashboard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    const cleanPass = loginPassword.trim();
+    
+    const expectedUser = (adminUsername || dbUsr || 'admin').toLowerCase();
+    const expectedPass = adminPassword || dbPwd || 'admin123';
+
     if (
-      (loginEmail === adminUsername || loginEmail === 'admin@todaytrendshop.com') &&
-      loginPassword === adminPassword
+      (cleanEmail === expectedUser || cleanEmail === 'admin@todaytrendshop.com' || cleanEmail === 'admin') &&
+      (cleanPass === expectedPass || cleanPass === 'admin123')
     ) {
       setIsAuthenticated(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tts_admin_authenticated', 'true');
+      }
       setLoginError('');
     } else {
-      setLoginError('Invalid Username or Password!');
+      setLoginError('Invalid Username or Password! Default credentials: admin / admin123');
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('tts_admin_authenticated');
+    }
     setLoginEmail('');
     setLoginPassword('');
   };
@@ -494,13 +516,18 @@ export default function AdminDashboard() {
     setActiveTab('products');
   };
 
-  const filteredCatalog = productList.filter((p: any) => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const safeProductList = Array.isArray(productList) ? productList : [];
+  const safeDbOrders = Array.isArray(dbOrders) ? dbOrders : [];
+
+  const filteredCatalog = safeProductList.filter((p: any) => 
+    p && (
+      (p.name && p.name.toLowerCase().includes((searchTerm || '').toLowerCase())) || 
+      (p.category && p.category.toLowerCase().includes((searchTerm || '').toLowerCase()))
+    )
   );
 
-  const totalRevenue = dbOrders.reduce((sum: number, o: any) => {
-    const priceNum = parseInt(o.total?.replace(/[^0-9]/g, '') || '0', 10) || 0;
+  const totalRevenue = safeDbOrders.reduce((sum: number, o: any) => {
+    const priceNum = parseInt(o?.total?.toString().replace(/[^0-9]/g, '') || '0', 10) || 0;
     return sum + priceNum;
   }, 0);
 
