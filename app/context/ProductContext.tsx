@@ -14,8 +14,31 @@ import {
 
 const ProductContext = createContext<any>(null);
 
+const saveProductsCache = (items: any[]) => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cache_products', JSON.stringify(items));
+    } catch (e) {
+      console.warn('Failed to save products cache to localStorage:', e);
+    }
+  }
+};
+
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cache_products');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          return [];
+        }
+      }
+    }
+    return [];
+  });
+
   const [visibleCount, setVisibleCount] = useState<number>(8);
 
   useEffect(() => {
@@ -29,7 +52,10 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
           ...docItem.data(),
         }));
 
-        setProducts(items);
+        if (items.length > 0) {
+          setProducts(items);
+          saveProductsCache(items);
+        }
       } catch (error) {
         console.error("Error fetching products from Firestore: ", error);
       }
@@ -49,10 +75,12 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
         createdAt: new Date().toISOString(),
       });
       
-      setProducts((prevProducts) => [
+      const newProducts = [
         { id: docRef.id, ...product },
-        ...prevProducts
-      ]);
+        ...products
+      ];
+      setProducts(newProducts);
+      saveProductsCache(newProducts);
     } catch (error) {
       console.error("Error adding product: ", error);
       alert('Failed to add product to database.');
@@ -64,7 +92,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
       const { id, ...dataToUpdate } = updatedProduct;
       const productRef = doc(db, 'products', id);
       await updateDoc(productRef, dataToUpdate);
-      setProducts((prev) => prev.map(p => p.id === id ? updatedProduct : p));
+      const newProducts = products.map(p => p.id === id ? updatedProduct : p);
+      setProducts(newProducts);
+      saveProductsCache(newProducts);
     } catch (error) {
       console.error("Error updating product: ", error);
       alert('Failed to update product in database.');
@@ -74,7 +104,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
   const deleteProduct = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'products', id));
-      setProducts((prev) => prev.filter(p => p.id !== id));
+      const newProducts = products.filter(p => p.id !== id);
+      setProducts(newProducts);
+      saveProductsCache(newProducts);
     } catch (error) {
       console.error("Error deleting product: ", error);
       alert('Failed to delete product from database.');
@@ -83,8 +115,9 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 
   const reduceStock = async (orderedItems: any[]) => {
     try {
+      let updatedProducts = [...products];
       for (const item of orderedItems) {
-        const matchingProduct = products.find((p) => p.name === item.name || p.id === item.id);
+        const matchingProduct = updatedProducts.find((p) => p.name === item.name || p.id === item.id);
         if (matchingProduct) {
           const currentUnits = parseInt(matchingProduct.units, 10) || 0;
           const orderedQty = parseInt(item.quantity, 10) || 1;
@@ -92,8 +125,12 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
           
           const productRef = doc(db, 'products', matchingProduct.id);
           await updateDoc(productRef, { units: newUnits });
+
+          updatedProducts = updatedProducts.map(p => p.id === matchingProduct.id ? { ...p, units: newUnits } : p);
         }
       }
+      setProducts(updatedProducts);
+      saveProductsCache(updatedProducts);
     } catch (error) {
       console.error("Error reducing stock: ", error);
     }
