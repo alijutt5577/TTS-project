@@ -45,6 +45,10 @@ export default function AdminDashboard() {
   const dbPwd = settingsContext?.adminPass || 'admin123';
   const dbOrders = settingsContext?.orders || [];
   const dbInq = settingsContext?.inquiries || [];
+  const dbLogoType = settingsContext?.logoType || 'text';
+  const dbLogoText = settingsContext?.logoText || 'TTS';
+  const dbLogoImage = settingsContext?.logoImage || '';
+  const dbLogoSize = settingsContext?.logoSize || '55';
   const updateSettings = settingsContext?.updateSettings || (async () => {});
   const updateAnnouncement = settingsContext?.updateAnnouncement || (async () => {});
   const updateContactSupport = settingsContext?.updateContactSupport || (async () => {});
@@ -52,6 +56,8 @@ export default function AdminDashboard() {
   const updateOrderStatus = settingsContext?.updateOrderStatus || (async () => {});
   const deleteOrder = settingsContext?.deleteOrder || (async () => {});
   const deleteInquiry = settingsContext?.deleteInquiry || (async () => {});
+  const updateLogoSettings = settingsContext?.updateLogoSettings || (async () => {});
+  const deleteLogoImage = settingsContext?.deleteLogoImage || (async () => {});
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -122,7 +128,11 @@ export default function AdminDashboard() {
     if (dbHrs) setContactHours(dbHrs);
     if (dbUsr) setAdminUsername(dbUsr);
     if (dbPwd) setAdminPassword(dbPwd);
-  }, [dbAnn, dbStatus, dbPhone, dbEmail, dbLoc, dbHrs, dbUsr, dbPwd]);
+    if (dbLogoType) setLogoTextOrImg(dbLogoType);
+    if (dbLogoText) setLogoText(dbLogoText);
+    if (dbLogoImage !== undefined) setLogoImage(dbLogoImage);
+    if (dbLogoSize) setLogoSize(dbLogoSize);
+  }, [dbAnn, dbStatus, dbPhone, dbEmail, dbLoc, dbHrs, dbUsr, dbPwd, dbLogoType, dbLogoText, dbLogoImage, dbLogoSize]);
 
   if (!isMounted) {
     return (
@@ -261,20 +271,76 @@ export default function AdminDashboard() {
       setKidsFestiveCollection(finalKids);
       setNewArrivals(finalNewArr);
 
-      await updateBanners({
-        heroBanners: finalHeroBanners,
-        mobileHeroBanners: finalMobileHeroBanners,
-        ladiesCollection: finalLadies,
-        kidsFestiveCollection: finalKids,
-        newArrivals: finalNewArr
-      });
+      // Upload logo if base64
+      let finalLogoImg = logoImage;
+      if (logoImage && logoImage.startsWith('data:')) {
+        finalLogoImg = await uploadToStorage(logoImage, 'logo');
+        setLogoImage(finalLogoImg);
+      }
 
-      alert('All Banners updated & saved to Database LIVE!');
+      await Promise.all([
+        updateBanners({
+          heroBanners: finalHeroBanners,
+          mobileHeroBanners: finalMobileHeroBanners,
+          ladiesCollection: finalLadies,
+          kidsFestiveCollection: finalKids,
+          newArrivals: finalNewArr
+        }),
+        updateLogoSettings({
+          logoType,
+          logoText,
+          logoImage: finalLogoImg,
+          logoSize
+        })
+      ]);
+
+      alert('All Store Banners & Logo updated and saved to Database LIVE!');
     } catch (error) {
       console.error("Banner update error:", error);
       alert('Banners updated in local state & cache.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleLogoImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      try {
+        const compressed = await compressImage(file, 800, 0.85);
+        const storageUrl = await uploadToStorage(compressed, 'logo');
+        setLogoImage(storageUrl);
+        setLogoTextOrImg('image');
+        await updateLogoSettings({
+          logoType: 'image',
+          logoImage: storageUrl,
+          logoText,
+          logoSize
+        });
+        alert('Store Logo photo uploaded to Firebase Storage & saved to Firestore LIVE!');
+      } catch (err) {
+        console.error('Failed uploading logo photo:', err);
+        alert('Error uploading logo photo. Please try again.');
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    if (confirm('Are you sure you want to delete the logo image? Store will revert to Text Logo.')) {
+      setIsUploading(true);
+      try {
+        await deleteLogoImage();
+        setLogoImage('');
+        setLogoTextOrImg('text');
+        alert('Logo image deleted successfully! Store reverted to Text Logo.');
+      } catch (err) {
+        console.error('Failed deleting logo image:', err);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -924,11 +990,23 @@ export default function AdminDashboard() {
                   <div className="flex items-center space-x-4">
                     <label className="flex-1 border-2 border-dashed border-stone-300 hover:border-stone-800 rounded-lg p-3 text-center cursor-pointer bg-stone-50 hover:bg-stone-100 transition">
                       <span className="text-xs font-semibold text-stone-700">Click to Select Logo Image</span>
-                      <input type="file" accept="image/*" onChange={(e) => handleBannerUpload(e, setLogoImage)} className="hidden" />
+                      <input type="file" accept="image/*" onChange={handleLogoImageUpload} className="hidden" />
                     </label>
                     {logoImage && (
-                      <div className="relative rounded overflow-hidden border bg-stone-100 shrink-0 p-1 flex items-center justify-center min-w-[100px]" style={{ height: `${logoSize}px` }}>
-                        <Image src={logoImage} alt="Logo Preview" fill className="object-contain" />
+                      <div className="flex items-center space-x-3">
+                        <div className="relative rounded overflow-hidden border bg-stone-100 shrink-0 p-1 flex items-center justify-center min-w-[100px]" style={{ height: `${logoSize}px` }}>
+                          <Image src={logoImage} alt="Logo Preview" fill className="object-contain" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDeleteLogo}
+                          disabled={isUploading}
+                          className="bg-red-50 hover:bg-red-100 text-red-700 text-xs px-3 py-2 rounded border border-red-200 flex items-center space-x-1.5 transition cursor-pointer font-semibold"
+                          title="Delete Logo Image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Logo</span>
+                        </button>
                       </div>
                     )}
                   </div>

@@ -20,14 +20,11 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { announcementText, supportPhone } = useSettings();
+  const { 
+    announcementText, supportPhone, 
+    logoType: ctxLogoType, logoText: ctxLogoText, logoImage: ctxLogoImage, logoSize: ctxLogoSize 
+  } = useSettings();
   const { heroBanners } = useBanners();
-
-  // DYNAMIC LOGO STATES
-  const [logoType, setLogoType] = useState<'text' | 'image'>('text');
-  const [logoText, setLogoText] = useState('TTS');
-  const [logoImage, setLogoImage] = useState('');
-  const [logoSize, setLogoSize] = useState('55');
 
   const { cart, removeFromCart, isCartOpen, setIsCartOpen } = useCart();
   const { wishlist, removeFromWishlist, isWishlistOpen, setIsWishlistOpen } = useWishlist();
@@ -43,29 +40,10 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    // Load Local Logo Settings
-    const loadLogoSettings = () => {
-      const savedLogoType = localStorage.getItem('tts_logo_type');
-      if (savedLogoType) setLogoType(savedLogoType as any);
-
-      const savedLogoText = localStorage.getItem('tts_logo_text');
-      if (savedLogoText) setLogoText(savedLogoText);
-
-      const savedLogoImg = localStorage.getItem('tts_logo_image');
-      if (savedLogoImg) setLogoImage(savedLogoImg);
-
-      const savedLogoSize = localStorage.getItem('tts_logo_size');
-      if (savedLogoSize) setLogoSize(savedLogoSize);
-    };
-
-    loadLogoSettings();
-
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('storage', loadLogoSettings);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('storage', loadLogoSettings);
     };
   }, []);
 
@@ -100,7 +78,7 @@ export default function Navbar() {
     formattedPhone = '92' + formattedPhone.slice(1);
   }
 
-  const currentHeight = parseInt(logoSize) || 55;
+  const currentHeight = parseInt(ctxLogoSize) || 55;
 
   return (
     <>
@@ -126,31 +104,31 @@ export default function Navbar() {
           </div>
         </div>
 
-        <nav className="w-full font-sans py-3 relative">
-          <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        {/* MAIN NAVIGATION BAR */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 relative">
             
-            {/* LEFT: HAMBURGER & DESKTOP LINKS */}
-            <div className="flex items-center space-x-4">
+            {/* LEFT: MOBILE MENU ICON & MAIN LINKS */}
+            <div className="flex items-center space-x-6">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
-                aria-label="Open Menu" 
-                className="md:hidden hover:opacity-75 transition p-1 cursor-pointer"
+                className="lg:hidden text-stone-900 p-1 hover:opacity-75 transition cursor-pointer"
+                aria-label="Open menu"
               >
-                <Menu className="w-6 h-6 stroke-[1.5]" />
+                <Menu className="w-6 h-6" />
               </button>
 
-              <div className="hidden md:flex items-center space-x-6 text-xs tracking-widest font-medium uppercase text-stone-900">
-                <Link href="/" className="hover:opacity-75 transition">Home</Link>
-                <Link href="/ladies" className="hover:opacity-75 transition">Ladies</Link>
-                <Link href="/kids" className="hover:opacity-75 transition">Kids</Link>
-                <Link href="/new-arrivals" className="hover:opacity-75 transition">New Arrivals</Link>
-                <Link href="/contact" className="hover:opacity-75 transition">Contact Us</Link>
-              </div>
+              <nav className="hidden lg:flex items-center space-x-8 text-xs uppercase tracking-[0.15em] font-semibold text-stone-800">
+                <Link href="/ladies" className="hover:text-amber-900 transition">Ladies</Link>
+                <Link href="/kids" className="hover:text-amber-900 transition">Kids</Link>
+                <Link href="/new-arrivals" className="hover:text-amber-900 transition">New Arrivals</Link>
+                <Link href="/contact" className="hover:text-amber-900 transition">Contact Us</Link>
+              </nav>
             </div>
 
             {/* CENTER: DYNAMIC BRAND LOGO */}
             <Link href="/" className="absolute left-1/2 transform -translate-x-1/2 flex items-center shrink-0">
-              {logoType === 'image' && logoImage ? (
+              {ctxLogoType === 'image' && ctxLogoImage ? (
                 <div 
                   className="relative transition-all duration-300 flex items-center justify-center" 
                   style={{ 
@@ -158,11 +136,11 @@ export default function Navbar() {
                     width: `${currentHeight * 3.5}px` 
                   }}
                 >
-                  <Image src={logoImage} alt="Brand Logo" fill className="object-contain" priority />
+                  <Image src={ctxLogoImage} alt="Brand Logo" fill className="object-contain" priority />
                 </div>
               ) : (
                 <span className="font-serif text-2xl md:text-3xl font-normal tracking-[0.2em] text-stone-900 hover:text-amber-900 transition-all duration-300 italic uppercase">
-                  {logoText || 'TTS'}
+                  {ctxLogoText || 'TTS'}
                 </span>
               )}
             </Link>
@@ -208,7 +186,7 @@ export default function Navbar() {
               </button>
             </div>
           </div>
-        </nav>
+        </div>
       </header>
 
       {/* MOBILE MENU SIDEBAR DRAWER */}

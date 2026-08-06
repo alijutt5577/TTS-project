@@ -13,6 +13,10 @@ interface SettingsContextType {
   contactHours: string;
   adminUser: string;
   adminPass: string;
+  logoType: 'text' | 'image';
+  logoText: string;
+  logoImage: string;
+  logoSize: string;
   orders: any[];
   inquiries: any[];
   updateAnnouncement: (text: string) => Promise<void>;
@@ -21,6 +25,8 @@ interface SettingsContextType {
   updateOrderStatus: (orderId: string, newStatus: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   deleteInquiry: (inqId: string) => Promise<void>;
+  updateLogoSettings: (data: { logoType?: 'text' | 'image'; logoText?: string; logoImage?: string; logoSize?: string }) => Promise<void>;
+  deleteLogoImage: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -82,6 +88,36 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       return localStorage.getItem('cache_adminPass') || 'admin123';
     }
     return 'admin123';
+  });
+
+  // LOGO SETTINGS STATES
+  const [logoType, setLogoType] = useState<'text' | 'image'>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cache_logoType') || localStorage.getItem('tts_logo_type');
+      if (cached === 'image' || cached === 'text') return cached;
+    }
+    return 'text';
+  });
+
+  const [logoText, setLogoText] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cache_logoText') || localStorage.getItem('tts_logo_text') || 'TTS';
+    }
+    return 'TTS';
+  });
+
+  const [logoImage, setLogoImage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cache_logoImage') || localStorage.getItem('tts_logo_image') || '';
+    }
+    return '';
+  });
+
+  const [logoSize, setLogoSize] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cache_logoSize') || localStorage.getItem('tts_logo_size') || '55';
+    }
+    return '55';
   });
 
   const [orders, setOrders] = useState<any[]>(() => {
@@ -154,6 +190,36 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
             setAdminPass(data.adminPass);
             localStorage.setItem('cache_adminPass', data.adminPass);
           }
+        }
+
+        // FETCH STORE LOGO DOCUMENT (settings/store-logo)
+        const logoDoc = await getDoc(doc(db, 'settings', 'store-logo'));
+        let logoData = logoDoc.exists() ? logoDoc.data() : null;
+        if (!logoData) {
+          const altLogoDoc = await getDoc(doc(db, 'settings', 'store_logo'));
+          if (altLogoDoc.exists()) logoData = altLogoDoc.data();
+        }
+
+        if (logoData) {
+          const lType = logoData.type || logoData.logoType || 'text';
+          setLogoType(lType as any);
+          localStorage.setItem('cache_logoType', lType);
+          localStorage.setItem('tts_logo_type', lType);
+
+          const lText = logoData.text || logoData.logoText || 'TTS';
+          setLogoText(lText);
+          localStorage.setItem('cache_logoText', lText);
+          localStorage.setItem('tts_logo_text', lText);
+
+          const lImg = logoData.url ?? logoData.logoImage ?? logoData.image ?? '';
+          setLogoImage(lImg);
+          localStorage.setItem('cache_logoImage', lImg);
+          localStorage.setItem('tts_logo_image', lImg);
+
+          const lSize = logoData.size || logoData.logoSize || '55';
+          setLogoSize(lSize);
+          localStorage.setItem('cache_logoSize', lSize);
+          localStorage.setItem('tts_logo_size', lSize);
         }
 
         const ordersSnap = await getDocs(collection(db, 'orders'));
@@ -232,6 +298,92 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const updateLogoSettings = async (data: {
+    logoType?: 'text' | 'image';
+    logoText?: string;
+    logoImage?: string;
+    logoSize?: string;
+  }) => {
+    try {
+      const newType = data.logoType !== undefined ? data.logoType : logoType;
+      const newText = data.logoText !== undefined ? data.logoText : logoText;
+      const newImage = data.logoImage !== undefined ? data.logoImage : logoImage;
+      const newSize = data.logoSize !== undefined ? data.logoSize : logoSize;
+
+      const payload = {
+        type: newType,
+        logoType: newType,
+        text: newText,
+        logoText: newText,
+        url: newImage,
+        image: newImage,
+        logoImage: newImage,
+        size: newSize,
+        logoSize: newSize,
+        updatedAt: new Date().toISOString()
+      };
+
+      await Promise.all([
+        setDoc(doc(db, 'settings', 'store-logo'), payload, { merge: true }),
+        setDoc(doc(db, 'settings', 'store_logo'), payload, { merge: true })
+      ]);
+
+      setLogoType(newType);
+      setLogoText(newText);
+      setLogoImage(newImage);
+      setLogoSize(newSize);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cache_logoType', newType);
+        localStorage.setItem('tts_logo_type', newType);
+        localStorage.setItem('cache_logoText', newText);
+        localStorage.setItem('tts_logo_text', newText);
+        localStorage.setItem('cache_logoImage', newImage);
+        localStorage.setItem('tts_logo_image', newImage);
+        localStorage.setItem('cache_logoSize', newSize);
+        localStorage.setItem('tts_logo_size', newSize);
+      }
+    } catch (error) {
+      console.error("Error updating logo settings:", error);
+      throw error;
+    }
+  };
+
+  const deleteLogoImage = async () => {
+    try {
+      const payload = {
+        type: 'text',
+        logoType: 'text',
+        text: logoText || 'TTS',
+        logoText: logoText || 'TTS',
+        url: '',
+        image: '',
+        logoImage: '',
+        size: logoSize || '55',
+        logoSize: logoSize || '55',
+        updatedAt: new Date().toISOString()
+      };
+
+      await Promise.all([
+        setDoc(doc(db, 'settings', 'store-logo'), payload, { merge: true }),
+        setDoc(doc(db, 'settings', 'store_logo'), payload, { merge: true })
+      ]);
+
+      setLogoType('text');
+      setLogoImage('');
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cache_logoType', 'text');
+        localStorage.setItem('tts_logo_type', 'text');
+        localStorage.setItem('cache_logoImage', '');
+        localStorage.setItem('tts_logo_image', '');
+      }
+    } catch (error) {
+      console.error("Error deleting logo image:", error);
+      throw error;
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const q = query(collection(db, 'orders'), where('id', '==', orderId));
@@ -276,8 +428,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   return (
     <SettingsContext.Provider value={{
       announcementText, storeStatus, supportPhone, contactEmail, contactLocation, contactHours,
-      adminUser, adminPass, orders, inquiries, updateAnnouncement, updateContactSupport, 
-      updateStoreSettings, updateOrderStatus, deleteOrder, deleteInquiry
+      adminUser, adminPass, logoType, logoText, logoImage, logoSize, orders, inquiries,
+      updateAnnouncement, updateContactSupport, updateStoreSettings, updateOrderStatus, 
+      deleteOrder, deleteInquiry, updateLogoSettings, deleteLogoImage
     }}>
       {children}
     </SettingsContext.Provider>
