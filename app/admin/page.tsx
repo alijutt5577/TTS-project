@@ -120,7 +120,7 @@ export default function AdminDashboard() {
     return <div className="min-h-screen bg-[#181818]" />;
   }
 
-  const compressImage = (file: File, maxWidth = 1920, quality = 0.92): Promise<string> => {
+  const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -194,7 +194,8 @@ export default function AdminDashboard() {
       });
       alert('Logo & All Banners updated & saved to Firestore Database LIVE!');
     } catch (error) {
-      alert('Storage Quota Exceeded or Firebase Error! Please check file sizes.');
+      console.error("Banner update error:", error);
+      alert('Error updating banners. Please make sure image sizes are reasonable.');
     }
   };
 
@@ -203,7 +204,7 @@ export default function AdminDashboard() {
     if (files && files.length > 0) {
       const compressedBanners: string[] = [];
       for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImage(files[i], 1920, 0.92);
+        const compressed = await compressImage(files[i], 1200, 0.75);
         compressedBanners.push(compressed);
       }
       setHeroBanners(prev => [...prev, ...compressedBanners]);
@@ -215,7 +216,7 @@ export default function AdminDashboard() {
     if (files && files.length > 0) {
       const compressedBanners: string[] = [];
       for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImage(files[i], 1080, 0.92);
+        const compressed = await compressImage(files[i], 800, 0.72);
         compressedBanners.push(compressed);
       }
       setMobileHeroBanners(prev => [...prev, ...compressedBanners]);
@@ -241,7 +242,7 @@ export default function AdminDashboard() {
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, setFunction: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      const compressed = await compressImage(file, 1920, 0.92);
+      const compressed = await compressImage(file, 1000, 0.75);
       setFunction(compressed);
     }
   };

@@ -19,14 +19,25 @@ interface BannerContextType {
   }) => Promise<void>;
 }
 
+const safeSetItem = (key: string, value: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`LocalStorage quota exceeded for key "${key}". Content active in memory & Firestore.`);
+    }
+  }
+};
+
 const BannerContext = createContext<BannerContextType | undefined>(undefined);
 
 export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
-  // 1. Shuru mein LocalStorage se data check karein taake instant load ho
   const [heroBanners, setHeroBanners] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('cache_heroBanners');
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        try { return JSON.parse(cached); } catch (e) {}
+      }
     }
     return ['/herobanners.jpg'];
   });
@@ -34,7 +45,9 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
   const [mobileHeroBanners, setMobileHeroBanners] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('cache_mobileHeroBanners');
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        try { return JSON.parse(cached); } catch (e) {}
+      }
     }
     return ['/herobanners.jpg'];
   });
@@ -72,11 +85,11 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           const data = bannerDoc.data();
           if (data.heroBanners && Array.isArray(data.heroBanners) && data.heroBanners.length > 0) {
             setHeroBanners(data.heroBanners);
-            localStorage.setItem('cache_heroBanners', JSON.stringify(data.heroBanners));
+            safeSetItem('cache_heroBanners', JSON.stringify(data.heroBanners));
           }
           if (data.mobileHeroBanners && Array.isArray(data.mobileHeroBanners) && data.mobileHeroBanners.length > 0) {
             setMobileHeroBanners(data.mobileHeroBanners);
-            localStorage.setItem('cache_mobileHeroBanners', JSON.stringify(data.mobileHeroBanners));
+            safeSetItem('cache_mobileHeroBanners', JSON.stringify(data.mobileHeroBanners));
           }
         }
 
@@ -84,15 +97,15 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
           const pData = posterDoc.data();
           if (pData['ladies collection'] && pData['ladies collection'].trim() !== '') {
             setLadiesCollection(pData['ladies collection']);
-            localStorage.setItem('cache_ladiesCollection', pData['ladies collection']);
+            safeSetItem('cache_ladiesCollection', pData['ladies collection']);
           }
           if (pData['kids festive collection'] && pData['kids festive collection'].trim() !== '') {
             setKidsFestiveCollection(pData['kids festive collection']);
-            localStorage.setItem('cache_kidsFestiveCollection', pData['kids festive collection']);
+            safeSetItem('cache_kidsFestiveCollection', pData['kids festive collection']);
           }
           if (pData['new arrivals'] && pData['new arrivals'].trim() !== '') {
             setNewArrivals(pData['new arrivals']);
-            localStorage.setItem('cache_newArrivals', pData['new arrivals']);
+            safeSetItem('cache_newArrivals', pData['new arrivals']);
           }
         }
       } catch (error) {
@@ -124,24 +137,23 @@ export const BannerProvider = ({ children }: { children: React.ReactNode }) => {
         }, { merge: true })
       ]);
 
-      // State aur LocalStorage dono ko update karein
       setHeroBanners(data.heroBanners);
-      localStorage.setItem('cache_heroBanners', JSON.stringify(data.heroBanners));
+      safeSetItem('cache_heroBanners', JSON.stringify(data.heroBanners));
 
       setMobileHeroBanners(data.mobileHeroBanners);
-      localStorage.setItem('cache_mobileHeroBanners', JSON.stringify(data.mobileHeroBanners));
+      safeSetItem('cache_mobileHeroBanners', JSON.stringify(data.mobileHeroBanners));
 
       if (data.ladiesCollection) {
         setLadiesCollection(data.ladiesCollection);
-        localStorage.setItem('cache_ladiesCollection', data.ladiesCollection);
+        safeSetItem('cache_ladiesCollection', data.ladiesCollection);
       }
       if (data.kidsFestiveCollection) {
         setKidsFestiveCollection(data.kidsFestiveCollection);
-        localStorage.setItem('cache_kidsFestiveCollection', data.kidsFestiveCollection);
+        safeSetItem('cache_kidsFestiveCollection', data.kidsFestiveCollection);
       }
       if (data.newArrivals) {
         setNewArrivals(data.newArrivals);
-        localStorage.setItem('cache_newArrivals', data.newArrivals);
+        safeSetItem('cache_newArrivals', data.newArrivals);
       }
     } catch (error) {
       console.error("Error updating banners/posters:", error);
