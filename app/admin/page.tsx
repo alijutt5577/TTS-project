@@ -305,7 +305,7 @@ export default function AdminDashboard() {
       alert('At least one Hero Banner is required!');
       return;
     }
-    setHeroBanners(heroBanners.filter((_, idx) => idx !== index));
+    setHeroBanners(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleRemoveMobileHeroBanner = (index: number) => {
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
       alert('At least one Mobile Hero Banner is required!');
       return;
     }
-    setMobileHeroBanners(mobileHeroBanners.filter((_, idx) => idx !== index));
+    setMobileHeroBanners(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, setFunction: (val: string) => void) => {
